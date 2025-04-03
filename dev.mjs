@@ -31,16 +31,11 @@ async function startDev() {
   // Build the app if needed
   if (shouldBuild) {
     console.log('Building the application first...');
-    // Use a compatible way to run vite build
+    // Use a compatible way to run vite build without unsupported flags
     const buildProcess = runCommand('node', [
       './node_modules/vite/bin/vite.js',
       'build'
-    ], {
-      env: {
-        ...process.env,
-        NODE_OPTIONS: '--no-experimental-fetch'
-      }
-    });
+    ]);
     
     // Wait for build to complete
     await new Promise((resolve) => {
@@ -65,12 +60,7 @@ async function startDev() {
     '--port',
     '8080',
     '--host'
-  ], {
-    env: {
-      ...process.env,
-      NODE_OPTIONS: '--no-experimental-fetch'  // Disable experimental features
-    }
-  });
+  ]);
 
   // Handle process termination
   process.on('SIGINT', () => {
