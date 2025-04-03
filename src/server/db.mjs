@@ -1,4 +1,3 @@
-
 import { MongoClient } from 'mongodb';
 
 // MongoDB connection
@@ -31,20 +30,9 @@ export const checkConnectionStatus = async (mongoUri) => {
       mongoClient = new MongoClient(mongoUri);
       await mongoClient.connect();
       
-      // Get database name from URI or use default
-      let dbName = 'domain_manager';
-      try {
-        const url = new URL(mongoUri);
-        const pathParts = url.pathname.split('/');
-        if (pathParts.length > 1 && pathParts[1]) {
-          dbName = pathParts[1];
-          console.log(`Server: Found database name in URI: ${dbName}`);
-        } else {
-          console.log(`Server: No database name found in URI, using default: ${dbName}`);
-        }
-      } catch (error) {
-        console.warn('Server: Could not parse database name from URI, using default:', dbName);
-      }
+      // Use "fsh" as the database name
+      let dbName = 'fsh';
+      console.log(`Server: Using database name: ${dbName}`);
       
       db = mongoClient.db(dbName);
       console.log(`Server: MongoDB connected successfully to database: ${dbName}`);
@@ -103,25 +91,14 @@ export const initializeDatabase = async (mongoUri) => {
       mongoClient = new MongoClient(mongoUri);
       await mongoClient.connect();
       
-      // Get database name from URI or use default
-      let dbName = 'domain_manager';
-      try {
-        const url = new URL(mongoUri);
-        const pathParts = url.pathname.split('/');
-        if (pathParts.length > 1 && pathParts[1]) {
-          dbName = pathParts[1];
-          console.log(`Server: Found database name in URI: ${dbName}`);
-        } else {
-          console.log(`Server: No database name found in URI, using default: ${dbName}`);
-        }
-      } catch (error) {
-        console.warn('Server: Could not parse database name from URI, using default:', dbName);
-      }
+      // Use "fsh" as the database name
+      const dbName = 'fsh';
+      console.log(`Server: Using database name: ${dbName}`);
       
       db = mongoClient.db(dbName);
       console.log(`Server: MongoDB connected for initialization to database: ${dbName}`);
     } else {
-      console.log('Server: Using existing MongoDB client for initialization');
+      console.log('Server: Using existing MongoDB client');
     }
     
     console.log('Server: Initializing database collections...');
