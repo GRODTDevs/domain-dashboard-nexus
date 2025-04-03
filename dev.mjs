@@ -30,50 +30,58 @@ function runCommand(command, args, options = {}) {
 const shouldBuild = !existsSync(path.join(__dirname, 'dist', 'index.html'));
 
 // Start the development environment
-function startDev() {
+async function startDev() {
   console.log('🚀 Starting development environment...');
 
   // Build the app if needed
   if (shouldBuild) {
     console.log('Building the application first...');
     
-    // Use a direct command compatible with older Node.js versions
-    const buildProcess = runCommand('node', ['./node_modules/vite/bin/vite.js', 'build']);
-    
-    buildProcess.on('close', (code) => {
-      if (code === 0) {
-        console.log('✅ Build completed');
-        startServers();
-      } else {
-        console.error(`❌ Build failed with code ${code}`);
-        process.exit(1);
-      }
-    });
-  } else {
-    startServers();
+    try {
+      // Use npm scripts directly since we have a modern Node version now
+      await new Promise((resolve, reject) => {
+        const buildProcess = runCommand('npm', ['run', 'build']);
+        
+        buildProcess.on('close', (code) => {
+          if (code === 0) {
+            console.log('✅ Build completed');
+            resolve();
+          } else {
+            reject(new Error(`Build failed with code ${code}`));
+          }
+        });
+      });
+    } catch (error) {
+      console.error('❌', error.message);
+      process.exit(1);
+    }
   }
 
-  function startServers() {
-    // Start the backend server with older Node.js compatibility
-    const serverProcess = runCommand('node', ['server.mjs']);
+  // Start both servers in parallel
+  console.log('Starting servers...');
+  
+  // Start the backend server
+  const serverProcess = runCommand('node', ['server.mjs']);
 
-    // Start development server with a direct command to vite
-    const clientProcess = runCommand('node', ['./node_modules/vite/bin/vite.js', '--port', '8080', '--host']);
+  // Start the development server using npm script
+  const clientProcess = runCommand('npm', ['run', 'dev']);
 
-    // Handle process termination
-    process.on('SIGINT', () => {
-      console.log('\n🛑 Shutting down development environment...');
-      clientProcess.kill();
-      serverProcess.kill();
-      process.exit(0);
-    });
+  // Handle process termination
+  process.on('SIGINT', () => {
+    console.log('\n🛑 Shutting down development environment...');
+    clientProcess.kill();
+    serverProcess.kill();
+    process.exit(0);
+  });
 
-    console.log('✅ Development environment running');
-    console.log('📱 Client: http://localhost:8080');
-    console.log('🖥️ Server is running (will auto-find an available port)');
-    console.log('Press Ctrl+C to stop');
-  }
+  console.log('✅ Development environment running');
+  console.log('📱 Client: http://localhost:8080');
+  console.log('🖥️ Server: Will auto-find an available port starting from 3000');
+  console.log('Press Ctrl+C to stop');
 }
 
 // Start the development process
-startDev();
+startDev().catch(err => {
+  console.error('Failed to start development environment:', err);
+  process.exit(1);
+});

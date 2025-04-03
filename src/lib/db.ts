@@ -1,4 +1,7 @@
+
 // MongoDB Database Management
+
+import { getDatabaseConnectionString } from './database-config';
 
 let storageStatus = {
   initialized: false,
@@ -50,8 +53,6 @@ export const initializeStorage = async () => {
     return false;
   }
 };
-
-import { getDatabaseConnectionString } from './database-config';
 
 export const isStorageInitialized = () => {
   return storageStatus.initialized;

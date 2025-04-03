@@ -37,6 +37,7 @@ export default defineConfig(({ mode }) => ({
         manualChunks: undefined,
       },
     },
+    target: 'es2020', // Target modern browsers
   },
   // Make sure to load .env.local file
   envDir: '.',

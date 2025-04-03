@@ -1,7 +1,6 @@
 
 'use strict';
 
-// Import dependencies in a way compatible with older Node.js versions
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
