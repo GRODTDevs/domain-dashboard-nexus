@@ -1,4 +1,3 @@
-
 // MongoDB Database Management
 
 let storageStatus = {
@@ -13,10 +12,29 @@ export const initializeStorage = async () => {
     console.log("Initializing MongoDB connection");
     
     // Check if MongoDB connection string is configured
-    const mongoUri = import.meta.env.VITE_MONGODB_URI;
+    const mongoUri = getDatabaseConnectionString();
     
     if (!mongoUri) {
-      throw new Error("MongoDB connection string is not configured. Please set the VITE_MONGODB_URI environment variable.");
+      throw new Error("MongoDB connection string is not configured. Please set the VITE_MONGODB_URI environment variable or configure it in the app.");
+    }
+    
+    // Test the connection via the server if we're in a browser environment
+    if (typeof window !== 'undefined') {
+      try {
+        // Simply ping the server to see if the connection works
+        const response = await fetch('/api/db/status');
+        if (!response.ok) {
+          const data = await response.json();
+          throw new Error(data.message || 'Failed to connect to MongoDB');
+        }
+        
+        console.log("MongoDB connection tested successfully via server API");
+      } catch (error) {
+        console.error("Failed to test MongoDB connection:", error);
+        storageStatus.error = error instanceof Error ? error.message : "Connection test failed";
+        storageStatus.initialized = false;
+        return false;
+      }
     }
     
     storageStatus.initialized = true;
@@ -32,6 +50,8 @@ export const initializeStorage = async () => {
     return false;
   }
 };
+
+import { getDatabaseConnectionString } from './database-config';
 
 export const isStorageInitialized = () => {
   return storageStatus.initialized;

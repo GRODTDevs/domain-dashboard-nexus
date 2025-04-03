@@ -17,6 +17,8 @@ import DomainEditPage from "./pages/domain-edit";
 import SettingsPage from "./pages/settings";
 import UsersPage from "./pages/users";
 import { useState, useEffect } from "react";
+import { DatabaseConnectionButton } from "./components/database-connection-button";
+import { isDbConnected } from "./lib/db";
 
 const App = () => {
   // Create a new QueryClient instance
@@ -31,12 +33,14 @@ const App = () => {
   
   // Add state to track app initialization
   const [isInitialized, setIsInitialized] = useState(false);
+  const [dbConnected, setDbConnected] = useState(isDbConnected());
   
   useEffect(() => {
     // Simulate any initialization tasks
     const initApp = async () => {
       try {
-        // Add any initialization logic here if needed
+        // Check database connection
+        setDbConnected(isDbConnected());
         setIsInitialized(true);
       } catch (error) {
         console.error("Error initializing app:", error);
@@ -45,6 +49,13 @@ const App = () => {
     };
     
     initApp();
+    
+    // Poll for database connection status changes
+    const checkDbInterval = setInterval(() => {
+      setDbConnected(isDbConnected());
+    }, 5000);
+    
+    return () => clearInterval(checkDbInterval);
   }, []);
   
   // Show loading state while initializing
@@ -60,6 +71,16 @@ const App = () => {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <TooltipProvider>
+          {!dbConnected && (
+            <div className="fixed top-0 left-0 right-0 bg-amber-100 dark:bg-amber-900 p-2 z-50 flex justify-center">
+              <div className="flex items-center gap-2">
+                <span className="text-amber-800 dark:text-amber-200">
+                  MongoDB connection not configured
+                </span>
+                <DatabaseConnectionButton />
+              </div>
+            </div>
+          )}
           <Toaster />
           <Sonner />
           <HashRouter>

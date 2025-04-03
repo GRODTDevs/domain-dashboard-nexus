@@ -11,6 +11,14 @@ let DATABASE_URL = '';
 export const setDatabaseConnectionString = (connectionString: string) => {
   DATABASE_URL = connectionString;
   console.log('Database connection string has been set');
+  
+  // Save to localStorage for persistence across page reloads
+  try {
+    localStorage.setItem('mongodb_uri', connectionString);
+  } catch (error) {
+    console.warn('Could not save connection string to localStorage', error);
+  }
+  
   return true;
 };
 
@@ -23,6 +31,17 @@ export const getDatabaseConnectionString = (): string => {
   if (import.meta.env.VITE_MONGODB_URI) {
     console.log('Using MongoDB connection string from environment variable');
     return import.meta.env.VITE_MONGODB_URI;
+  }
+  
+  // Next, check if we have a saved connection string in localStorage
+  try {
+    const savedConnectionString = localStorage.getItem('mongodb_uri');
+    if (savedConnectionString) {
+      console.log('Using MongoDB connection string from localStorage');
+      DATABASE_URL = savedConnectionString;
+    }
+  } catch (error) {
+    console.warn('Could not load connection string from localStorage', error);
   }
   
   return DATABASE_URL;

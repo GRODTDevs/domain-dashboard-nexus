@@ -4,6 +4,7 @@ import App from './App.tsx'
 import './index.css'
 import { initializeStorage } from './lib/db.ts'
 import { getDatabaseConnectionString } from './lib/database-config.ts'
+import React from 'react'
 
 // Make sure we're using the correct DOM element
 const rootElement = document.getElementById("root");
@@ -24,18 +25,31 @@ const initApp = async () => {
     await initializeStorage();
     
     // Render the app
-    createRoot(rootElement).render(<App />);
+    createRoot(rootElement).render(
+      <React.StrictMode>
+        <App />
+      </React.StrictMode>
+    );
   } catch (error) {
     console.error("Failed to initialize the application:", error);
     
-    // Provide fallback error display
-    rootElement.innerHTML = `
-      <div style="padding: 20px; text-align: center; font-family: sans-serif;">
-        <h2>Application Error</h2>
-        <p>Sorry, the application failed to load. Please ensure your MongoDB connection is properly configured.</p>
-        <pre style="background: #f5f5f5; padding: 10px; border-radius: 4px; text-align: left; margin-top: 20px;">${error instanceof Error ? error.message : 'Unknown error'}</pre>
-      </div>
-    `;
+    // Import the DatabaseConnectionDialog component for error recovery
+    import('./components/database-connection-button').then(({ DatabaseConnectionButton }) => {
+      createRoot(rootElement).render(
+        <div style={{ padding: '20px', maxWidth: '600px', margin: '40px auto' }}>
+          <h2 style={{ fontSize: '24px', marginBottom: '16px' }}>MongoDB Connection Required</h2>
+          <p style={{ marginBottom: '20px' }}>
+            Please configure your MongoDB connection to continue.
+          </p>
+          <DatabaseConnectionButton />
+          <div style={{ marginTop: '20px', padding: '12px', background: '#f5f5f5', borderRadius: '4px' }}>
+            <pre style={{ margin: 0, fontSize: '12px' }}>
+              {error instanceof Error ? error.message : 'Unknown error'}
+            </pre>
+          </div>
+        </div>
+      );
+    });
   }
 };
 
