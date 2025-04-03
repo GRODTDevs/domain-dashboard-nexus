@@ -1,7 +1,6 @@
-
 import { Domain, DomainFile, DomainLink, DomainNote, DomainStatus, SEOAnalysis } from "@/types/domain";
 import { v4 as uuidv4 } from 'uuid';
-import { getDb, isDbConnected } from "./db";
+import { isStorageInitialized } from "./db";
 
 // User types
 export type UserRole = "admin" | "user" | "editor" | "viewer";
@@ -155,52 +154,16 @@ const calculateDomainStatus = (expiryDate: string): DomainStatus => {
   return 'active';
 };
 
-// API functions with MongoDB support
+// API functions with localStorage support
 export const fetchDomains = async (): Promise<Domain[]> => {
   await new Promise(resolve => setTimeout(resolve, 500)); // Artificial delay
   
-  // If MongoDB is connected, use it
-  if (isDbConnected()) {
-    try {
-      const db = getDb();
-      if (!db) throw new Error("Database not connected");
-      
-      const domainsCollection = db.collection("domains");
-      const result = await domainsCollection.find({}).toArray();
-      
-      // If we got domains from MongoDB (simulated), update localStorage
-      if (result && result.length > 0) {
-        domains = result as Domain[];
-        saveDomainsToStorage(domains);
-      }
-      return result as Domain[];
-    } catch (error) {
-      console.error("Error fetching domains from MongoDB:", error);
-      // Fall back to localStorage domains if MongoDB fails
-      return domains;
-    }
-  }
-  
-  // Use localStorage data when MongoDB is not connected
+  // Always use localStorage data
   return domains;
 };
 
 export const fetchDomain = async (id: string): Promise<Domain | undefined> => {
   await new Promise(resolve => setTimeout(resolve, 300));
-  
-  if (isDbConnected()) {
-    try {
-      const db = getDb();
-      if (!db) throw new Error("Database not connected");
-      
-      const domainsCollection = db.collection("domains");
-      const result = await domainsCollection.findOne({ id });
-      return result as Domain | undefined;
-    } catch (error) {
-      console.error("Error fetching domain from MongoDB:", error);
-    }
-  }
-  
   return domains.find(domain => domain.id === id);
 };
 
@@ -217,20 +180,7 @@ export const createDomain = async (domain: Omit<Domain, 'id' | 'notes' | 'links'
     seoAnalyses: [],
   };
   
-  if (isDbConnected()) {
-    try {
-      const db = getDb();
-      if (!db) throw new Error("Database not connected");
-      
-      const domainsCollection = db.collection("domains");
-      await domainsCollection.insertOne(newDomain);
-      console.log("Domain created in MongoDB:", newDomain.id);
-    } catch (error) {
-      console.error("Error creating domain in MongoDB:", error);
-    }
-  }
-  
-  // Always update the in-memory array and localStorage as a fallback
+  // Update the in-memory array and localStorage
   domains = [...domains, newDomain];
   saveDomainsToStorage(domains);
   return newDomain;
@@ -252,22 +202,6 @@ export const updateDomain = async (id: string, updates: Partial<Omit<Domain, 'id
     status: updatedStatus
   };
   
-  if (isDbConnected()) {
-    try {
-      const db = getDb();
-      if (!db) throw new Error("Database not connected");
-      
-      const domainsCollection = db.collection("domains");
-      await domainsCollection.updateOne(
-        { id },
-        { $set: { ...updates, status: updatedStatus } }
-      );
-      console.log("Domain updated in MongoDB:", id);
-    } catch (error) {
-      console.error("Error updating domain in MongoDB:", error);
-    }
-  }
-  
   domains = [
     ...domains.slice(0, index),
     updatedDomain,
@@ -288,19 +222,6 @@ export const deleteDomain = async (id: string): Promise<boolean> => {
   
   console.log(`Domain deletion attempted: ID ${id}`);
   console.log(`Initial domains count: ${initialLength}, Current count: ${domains.length}`);
-  
-  if (isDbConnected()) {
-    try {
-      const db = getDb();
-      if (!db) throw new Error("Database not connected");
-      
-      const domainsCollection = db.collection("domains");
-      const result = await domainsCollection.deleteOne({ id });
-      console.log(`Domain deleted from MongoDB: ${id}, deleted count: ${result.deletedCount}`);
-    } catch (error) {
-      console.error("Error deleting domain from MongoDB:", error);
-    }
-  }
   
   // Save updated domains to localStorage after deletion
   if (domains.length < initialLength) {

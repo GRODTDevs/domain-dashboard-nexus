@@ -10,7 +10,7 @@ import { DomainList } from "@/components/domains/domain-list";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { DatabaseConnectionDialog } from "@/components/database-connection-dialog";
-import { initializeDb, isDbConnected } from "@/lib/db";
+import { initializeStorage, isStorageInitialized } from "@/lib/db";
 
 export default function DomainsListPage() {
   const [domains, setDomains] = useState<Domain[]>([]);
@@ -21,42 +21,26 @@ export default function DomainsListPage() {
   const { toast } = useToast();
   const location = useLocation();
 
-  // Auto-connect to MongoDB on component mount
+  // Auto-initialize storage on component mount
   useEffect(() => {
-    const autoConnectToMongoDB = async () => {
-      if (!isDbConnected()) {
+    const autoInitializeStorage = async () => {
+      if (!isStorageInitialized()) {
         try {
-          const connected = await initializeDb(); // Use default connection string
-          if (connected) {
-            console.log("Auto-connected to MongoDB using default connection string");
+          const initialized = await initializeStorage(); 
+          if (initialized) {
+            console.log("Auto-initialized local storage");
             toast({
-              title: "Database Connected",
-              description: "Successfully connected to MongoDB database (simulated)",
+              title: "Storage Initialized",
+              description: "Successfully configured local storage for data persistence",
             });
           }
         } catch (error) {
-          console.error("Failed to auto-connect to MongoDB:", error);
+          console.error("Failed to auto-initialize storage:", error);
         }
       }
     };
     
-    autoConnectToMongoDB();
-  }, [toast]);
-
-  // Check for existing MongoDB connection on component mount (fallback to localStorage)
-  useEffect(() => {
-    const savedConnection = localStorage.getItem("mongodb_connection_string");
-    if (savedConnection && !isDbConnected()) {
-      initializeDb(savedConnection).then(connected => {
-        if (connected) {
-          console.log("Reconnected to MongoDB using saved connection string");
-          toast({
-            title: "Database Connected",
-            description: "Successfully reconnected to MongoDB database (simulated)",
-          });
-        }
-      });
-    }
+    autoInitializeStorage();
   }, [toast]);
 
   const loadDomains = async () => {
@@ -106,7 +90,7 @@ export default function DomainsListPage() {
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => setDbDialogOpen(true)}>
             <Database className="mr-2 h-4 w-4" />
-            {isDbConnected() ? "Database Connected (Simulated)" : "Connect Database"}
+            {isStorageInitialized() ? "Storage Configured" : "Configure Storage"}
           </Button>
           <Button asChild>
             <Link to="/domains/new">
