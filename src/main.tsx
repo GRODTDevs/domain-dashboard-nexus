@@ -19,16 +19,20 @@ const initApp = async () => {
       console.warn("No MongoDB connection string found. Please set the VITE_MONGODB_URI environment variable.");
     } else {
       console.log("Found MongoDB connection string");
+      
+      // Try to initialize MongoDB but don't block app rendering
+      try {
+        const initialized = await initializeStorage();
+        if (!initialized) {
+          console.warn("MongoDB initialization was not successful - continuing anyway");
+        }
+      } catch (error) {
+        console.error("Error during MongoDB initialization:", error);
+        // Continue rendering app despite initialization error
+      }
     }
     
-    // Initialize MongoDB connection
-    const initialized = await initializeStorage();
-    
-    if (!initialized) {
-      console.warn("MongoDB initialization was not successful - continuing anyway");
-    }
-    
-    // Render the app regardless of database initialization success
+    // Always render the app - connection issues will be handled in components
     createRoot(rootElement).render(
       <React.StrictMode>
         <App />
@@ -41,9 +45,9 @@ const initApp = async () => {
     import('./components/database-connection-button').then(({ DatabaseConnectionButton }) => {
       createRoot(rootElement).render(
         <div style={{ padding: '20px', maxWidth: '600px', margin: '40px auto' }}>
-          <h2 style={{ fontSize: '24px', marginBottom: '16px' }}>MongoDB Connection Required</h2>
+          <h2 style={{ fontSize: '24px', marginBottom: '16px' }}>Application Initialization Error</h2>
           <p style={{ marginBottom: '20px' }}>
-            Please configure your MongoDB connection to continue.
+            An error occurred while initializing the application. This might be related to the MongoDB connection.
           </p>
           <DatabaseConnectionButton />
           <div style={{ marginTop: '20px', padding: '12px', background: '#f5f5f5', borderRadius: '4px' }}>

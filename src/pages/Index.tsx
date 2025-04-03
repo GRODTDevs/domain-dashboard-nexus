@@ -12,21 +12,30 @@ const Index = () => {
   const [searchParams] = useSearchParams();
   const customizeMode = searchParams.get("customize") === "true";
   const [isDbReady, setIsDbReady] = useState<boolean | null>(null);
+  const [isCheckingDb, setIsCheckingDb] = useState(true);
   
   // Check database status
   useEffect(() => {
     const checkDbStatus = async () => {
-      // Check if we have a connection string configured
-      if (isDatabaseConfigured()) {
-        try {
-          await initializeStorage();
-          setIsDbReady(true);
-        } catch (error) {
-          console.error("Failed to initialize database:", error);
+      setIsCheckingDb(true);
+      try {
+        // Check if we have a connection string configured
+        if (isDatabaseConfigured()) {
+          try {
+            await initializeStorage();
+            setIsDbReady(true);
+          } catch (error) {
+            console.error("Failed to initialize database:", error);
+            setIsDbReady(false);
+          }
+        } else {
           setIsDbReady(false);
         }
-      } else {
+      } catch (e) {
+        console.error("Error checking database status:", e);
         setIsDbReady(false);
+      } finally {
+        setIsCheckingDb(false);
       }
     };
     
@@ -35,29 +44,37 @@ const Index = () => {
 
   // Handle navigation after auth check
   useEffect(() => {
-    // Skip navigation until we know auth status and db status
-    if (isLoading || isDbReady === null) return;
+    // Skip navigation if still checking DB status
+    if (isCheckingDb) return;
     
-    // If DB is not configured, show the connection dialog
-    if (!isDbReady) {
-      // Don't redirect - we'll show the DB connection UI
+    // Once DB check is complete, make navigation decisions
+    if (isDbReady === false) {
+      // Don't navigate if DB is not ready - we'll show the DB connection UI
       return;
     }
     
-    // Handle auth-based navigation
-    if (isAuthenticated) {
-      if (customizeMode) {
-        // Redirect to settings if in customize mode
-        navigate("/settings");
+    // Only navigate if auth loading is complete
+    if (!isLoading) {
+      if (isAuthenticated) {
+        if (customizeMode) {
+          navigate("/settings");
+        } else {
+          navigate("/dashboard");
+        }
       } else {
-        // Redirect to dashboard if already authenticated
-        navigate("/dashboard");
+        navigate("/login");
       }
-    } else {
-      // Redirect to login if not authenticated
-      navigate("/login");
     }
-  }, [navigate, isAuthenticated, customizeMode, isLoading, isDbReady]);
+  }, [navigate, isAuthenticated, customizeMode, isLoading, isDbReady, isCheckingDb]);
+
+  // If still checking DB, show loading
+  if (isCheckingDb) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-pulse">Checking database connection...</div>
+      </div>
+    );
+  }
 
   // If the database is not ready, show the connection button
   if (isDbReady === false) {
@@ -70,10 +87,10 @@ const Index = () => {
     );
   }
 
-  // Loading state
+  // Show loading for auth check
   return (
     <div className="flex items-center justify-center min-h-screen">
-      <div className="animate-pulse">Loading...</div>
+      <div className="animate-pulse">Loading application...</div>
     </div>
   );
 };

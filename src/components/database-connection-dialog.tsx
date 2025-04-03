@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { initializeStorage, isDatabaseInstalled } from "@/lib/db";
-import { Loader2, CheckCircle } from "lucide-react";
+import { Loader2, CheckCircle, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import { setDatabaseConnectionString, isDatabaseConfigured, isDatabaseInstalled as configIsDatabaseInstalled } from "@/lib/database-config";
@@ -17,6 +17,7 @@ interface DatabaseConnectionDialogProps {
 export function DatabaseConnectionDialog({ isOpen, onOpenChange }: DatabaseConnectionDialogProps) {
   const [isConnecting, setIsConnecting] = useState(false);
   const [connectionString, setConnectionString] = useState('');
+  const [connectionError, setConnectionError] = useState<string | null>(null);
   const [installStatus, setInstallStatus] = useState(configIsDatabaseInstalled());
   const { toast } = useToast();
 
@@ -27,11 +28,14 @@ export function DatabaseConnectionDialog({ isOpen, onOpenChange }: DatabaseConne
         setConnectionString('(Using connection string from environment variable)');
       }
       setInstallStatus(configIsDatabaseInstalled());
+      setConnectionError(null);
     }
   }, [isOpen]);
 
   const handleConnect = async () => {
     setIsConnecting(true);
+    setConnectionError(null);
+    
     try {
       if (!connectionString && !import.meta.env.VITE_MONGODB_URI) {
         throw new Error("MongoDB connection string is required");
@@ -62,13 +66,17 @@ export function DatabaseConnectionDialog({ isOpen, onOpenChange }: DatabaseConne
         description: "Your MongoDB connection has been successfully configured and initialized."
       });
       
-      onOpenChange(false);
+      // Force page refresh to apply the new connection
+      window.location.reload();
       
     } catch (error) {
       console.error("Error connecting to database:", error);
+      const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
+      setConnectionError(errorMessage);
+      
       toast({
         title: "Connection Error",
-        description: error instanceof Error ? error.message : "An unknown error occurred",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -110,6 +118,14 @@ export function DatabaseConnectionDialog({ isOpen, onOpenChange }: DatabaseConne
               </p>
             )}
           </div>
+          
+          {/* Connection error */}
+          {connectionError && (
+            <div className="flex items-center gap-2 text-sm text-destructive">
+              <AlertCircle className="h-4 w-4" />
+              <span>{connectionError}</span>
+            </div>
+          )}
           
           {/* Installation status */}
           {installStatus && (
