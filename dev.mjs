@@ -1,6 +1,6 @@
 
-// Use CommonJS syntax since this is running in an older Node.js environment
-const { spawn } = require('child_process');
+// Use ES modules syntax for Node.js
+import { spawn } from 'child_process';
 
 // Function to run a command
 function runCommand(command, args, options = {}) {
@@ -24,7 +24,8 @@ console.log('🚀 Starting development environment...');
 // Using npx with the --no-install flag to avoid using top-level await
 const clientProcess = runCommand('npx', ['--no-install', 'vite', '--port', '8080']);
 
-// Start the backend server with Node.js using the --require flag to support CommonJS
+// Start the backend server
+// We need to ensure the server file is executed as CommonJS
 const serverProcess = runCommand('node', ['--require=./server-commonjs.js']);
 
 // Handle process termination
