@@ -48,8 +48,8 @@ export function useDatabaseConnection() {
           headers: {
             'Accept': 'application/json',
             'Content-Type': 'application/json'
-          },
-          timeout: 30000 // 30 second timeout
+          }
+          // Removed timeout: 30000 as it's not supported by the fetch API in browsers
         });
         
         if (!response.ok) {

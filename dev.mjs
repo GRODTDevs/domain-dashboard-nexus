@@ -57,13 +57,16 @@ async function startDev() {
     }
   }
 
-  // Start both servers in parallel
-  console.log('Starting servers...');
-  
-  // Start the backend server
+  // Start the backend server first and wait a bit to ensure it's running
+  console.log('Starting backend server...');
   const serverProcess = runCommand('node', ['server.mjs']);
+  
+  // Wait for the server to start (2 seconds)
+  await new Promise(resolve => setTimeout(resolve, 2000));
+  console.log('Backend server should be running now');
 
   // Start the development server using npm script
+  console.log('Starting frontend development server...');
   const clientProcess = runCommand('npm', ['run', 'dev']);
 
   // Handle process termination
@@ -76,7 +79,7 @@ async function startDev() {
 
   console.log('✅ Development environment running');
   console.log('📱 Client: http://localhost:8080');
-  console.log('🖥️ Server: Will auto-find an available port starting from 3000');
+  console.log('🖥️ Server: Running on port 3001');
   console.log('Press Ctrl+C to stop');
 }
 
