@@ -32,4 +32,8 @@ export default defineConfig(({ mode }) => ({
   },
   // Make sure to load .env.local file
   envDir: '.',
+  // Define specific optimizations for browser compatibility
+  optimizeDeps: {
+    exclude: ['mongodb'], // Exclude mongodb from optimization
+  },
 }));

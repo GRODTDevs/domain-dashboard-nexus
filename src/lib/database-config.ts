@@ -1,12 +1,8 @@
 
 // Database configuration
 
-import { MongoClient } from 'mongodb';
-
-// This is where you'll store your database connection string
-// For security, this should be loaded from an environment variable
+// We'll store connection information but not attempt to connect from the browser
 let DATABASE_URL = '';
-let mongoClient: MongoClient | null = null;
 
 /**
  * Set the database connection string
@@ -15,7 +11,6 @@ let mongoClient: MongoClient | null = null;
 export const setDatabaseConnectionString = (connectionString: string) => {
   DATABASE_URL = connectionString;
   // Store in localStorage for persistence (only for development/demo purposes)
-  // In production, this should use proper environment variables
   localStorage.setItem('database_connection_string', connectionString);
   console.log('Database connection string has been set');
   return true;
@@ -48,24 +43,8 @@ export const isDatabaseConfigured = (): boolean => {
 };
 
 /**
- * Get the MongoDB client
- * @returns The MongoDB client instance
- */
-export const getMongoClient = (): MongoClient | null => {
-  return mongoClient;
-};
-
-/**
- * Set the MongoDB client instance
- * @param client The MongoDB client to set
- */
-export const setMongoClient = (client: MongoClient | null): void => {
-  mongoClient = client;
-};
-
-/**
  * Initialize the database connection
- * This creates a MongoDB client and connects to the database
+ * In the browser, this simply validates the connection string format
  */
 export const initializeDatabase = async (): Promise<boolean> => {
   const connectionString = getDatabaseConnectionString();
@@ -76,30 +55,16 @@ export const initializeDatabase = async (): Promise<boolean> => {
   }
   
   try {
-    if (mongoClient) {
-      // Close the existing connection if there is one
-      await mongoClient.close();
+    // Validate that the string looks like a MongoDB connection string
+    if (!connectionString.startsWith('mongodb://') && !connectionString.startsWith('mongodb+srv://')) {
+      console.error('Invalid MongoDB connection string format');
+      return false;
     }
     
-    console.log('Initializing MongoDB connection with string:', 
-      connectionString.substring(0, 10) + '...');
-    
-    // Create a new MongoDB client
-    const client = new MongoClient(connectionString);
-    
-    // Connect to the server
-    await client.connect();
-    
-    // Verify the connection
-    await client.db('admin').command({ ping: 1 });
-    
-    // Store the client
-    setMongoClient(client);
-    
-    console.log('MongoDB connection initialized successfully');
+    console.log('MongoDB connection string format is valid');
     return true;
   } catch (error) {
-    console.error('Failed to initialize database connection:', error);
+    console.error('Failed to validate database connection:', error);
     return false;
   }
 };

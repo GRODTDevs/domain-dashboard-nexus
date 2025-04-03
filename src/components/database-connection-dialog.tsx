@@ -19,7 +19,7 @@ export function DatabaseConnectionDialog({ isOpen, onOpenChange }: DatabaseConne
   const [isPersistent, setIsPersistent] = useState(true);
   const [isConnecting, setIsConnecting] = useState(false);
   const [connectionString, setConnectionString] = useState('');
-  const [useExternalDb, setUseExternalDb] = useState(true); // Default to using MongoDB
+  const [useExternalDb, setUseExternalDb] = useState(true);
   const { toast } = useToast();
 
   // Load existing connection string if available
@@ -54,16 +54,9 @@ export function DatabaseConnectionDialog({ isOpen, onOpenChange }: DatabaseConne
         // Store the connection string
         setDatabaseConnectionString(connectionString);
         
-        // Try to initialize the database connection
-        const dbConnected = await initializeDatabase();
-        
-        if (!dbConnected) {
-          throw new Error("Failed to connect to MongoDB database");
-        }
-        
         toast({
-          title: "MongoDB Connected",
-          description: "Successfully connected to MongoDB database",
+          title: "Connection String Saved",
+          description: "Your MongoDB connection string has been saved. In this browser version, actual MongoDB connections are simulated.",
         });
       }
       
@@ -94,9 +87,9 @@ export function DatabaseConnectionDialog({ isOpen, onOpenChange }: DatabaseConne
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>MongoDB Connection</DialogTitle>
+          <DialogTitle>Storage Configuration</DialogTitle>
           <DialogDescription>
-            Configure your MongoDB database connection
+            Configure your data storage preferences
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
@@ -112,14 +105,14 @@ export function DatabaseConnectionDialog({ isOpen, onOpenChange }: DatabaseConne
               />
             </div>
             <p className="text-xs text-muted-foreground">
-              When enabled, your domain data will be stored persistently.
+              When enabled, your domain data will be stored persistently in localStorage.
             </p>
           </div>
           
           <div className="grid gap-2">
             <div className="flex items-center justify-between">
               <Label htmlFor="external-db-toggle" className="text-sm font-medium">
-                Use MongoDB
+                Simulate MongoDB
               </Label>
               <Switch
                 id="external-db-toggle"
@@ -139,7 +132,8 @@ export function DatabaseConnectionDialog({ isOpen, onOpenChange }: DatabaseConne
                   className="w-full"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Enter your MongoDB connection string. This should start with "mongodb://" or "mongodb+srv://".
+                  Enter your MongoDB connection string for simulation. In this browser version, 
+                  your data will still be stored in localStorage, but the app will behave as if connected to MongoDB.
                 </p>
               </div>
             )}
@@ -155,7 +149,7 @@ export function DatabaseConnectionDialog({ isOpen, onOpenChange }: DatabaseConne
             onClick={handleConnect}
           >
             {isConnecting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {isConnecting ? 'Connecting...' : 'Connect to MongoDB'}
+            {isConnecting ? 'Connecting...' : 'Save Configuration'}
           </Button>
         </DialogFooter>
       </DialogContent>

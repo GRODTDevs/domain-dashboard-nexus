@@ -2,24 +2,24 @@
 import { createRoot } from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
-import { initializeDb } from './lib/db.ts'
+import { initializeStorage } from './lib/db.ts'
 import { getDatabaseConnectionString } from './lib/database-config.ts'
 
 // Make sure we're using the correct DOM element
 const rootElement = document.getElementById("root");
 if (!rootElement) throw new Error("Failed to find the root element");
 
-// Initialize database connection if available
+// Initialize storage and render app
 const initApp = async () => {
   try {
     // Check if we have a stored connection string or environment variable
     const connectionString = getDatabaseConnectionString();
     if (connectionString) {
-      console.log("Found MongoDB connection string, initializing database...");
-      await initializeDb(connectionString);
-    } else {
-      console.log("No MongoDB connection string found, using local storage");
+      console.log("Found MongoDB connection string, will use localStorage with simulation");
     }
+    
+    // Initialize storage (always using localStorage in browser)
+    await initializeStorage();
     
     // Render the app
     createRoot(rootElement).render(<App />);
