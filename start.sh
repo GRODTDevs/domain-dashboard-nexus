@@ -1,7 +1,28 @@
 
 #!/bin/bash
 
-# Start everything script
+# Start script for development environment
+
+# Pull the latest updates from git
+echo "🔄 Pulling latest updates from git..."
+git pull
+
+# Check if .env file exists
+if [ ! -f ".env" ]; then
+  echo "⚠️ .env file doesn't exist. Creating a sample one..."
+  cat > .env << EOF
+# MongoDB Connection String
+MONGODB_URI=mongodb://localhost:27017/myapp
+VITE_MONGODB_URI=mongodb://localhost:27017/myapp
+
+# Application Settings
+PORT=3001
+NODE_ENV=development
+EOF
+  echo "✅ Created .env file with sample values. Please edit it with your actual values."
+else
+  echo "✅ .env file exists"
+fi
 
 # Build the application if needed
 if [ ! -d "dist" ] || [ ! -f "dist/index.html" ]; then
