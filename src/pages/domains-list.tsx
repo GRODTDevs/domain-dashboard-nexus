@@ -1,7 +1,7 @@
 
 import { Layout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, Search } from "lucide-react";
+import { PlusCircle, Search, Database } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { fetchDomains } from "@/lib/api";
 import { useEffect, useState } from "react";
@@ -9,14 +9,29 @@ import { Domain } from "@/types/domain";
 import { DomainList } from "@/components/domains/domain-list";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { DatabaseConnectionDialog } from "@/components/database-connection-dialog";
+import { initializeDb, isDbConnected } from "@/lib/db";
 
 export default function DomainsListPage() {
   const [domains, setDomains] = useState<Domain[]>([]);
   const [filteredDomains, setFilteredDomains] = useState<Domain[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [dbDialogOpen, setDbDialogOpen] = useState(false);
   const { toast } = useToast();
   const location = useLocation();
+
+  // Check for existing MongoDB connection on component mount
+  useEffect(() => {
+    const savedConnection = localStorage.getItem("mongodb_connection_string");
+    if (savedConnection && !isDbConnected()) {
+      initializeDb(savedConnection).then(connected => {
+        if (connected) {
+          console.log("Reconnected to MongoDB using saved connection string");
+        }
+      });
+    }
+  }, []);
 
   const loadDomains = async () => {
     setIsLoading(true);
@@ -62,12 +77,18 @@ export default function DomainsListPage() {
     <Layout>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-semibold">All Domains</h1>
-        <Button asChild>
-          <Link to="/domains/new">
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Add Domain
-          </Link>
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setDbDialogOpen(true)}>
+            <Database className="mr-2 h-4 w-4" />
+            {isDbConnected() ? "Database Connected" : "Connect Database"}
+          </Button>
+          <Button asChild>
+            <Link to="/domains/new">
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Add Domain
+            </Link>
+          </Button>
+        </div>
       </div>
 
       <div className="mb-6">
@@ -90,6 +111,11 @@ export default function DomainsListPage() {
           onRefresh={loadDomains}
         />
       </div>
+      
+      <DatabaseConnectionDialog 
+        isOpen={dbDialogOpen}
+        onOpenChange={setDbDialogOpen}
+      />
     </Layout>
   );
 }
