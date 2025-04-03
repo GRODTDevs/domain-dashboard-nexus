@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -31,12 +30,10 @@ const LoginPage = () => {
   const from = location.state?.from?.pathname || "/dashboard";
 
   useEffect(() => {
-    // Redirect if already authenticated
     if (isAuthenticated) {
       navigate(from, { replace: true });
     }
     
-    // Load appearance settings from localStorage
     const savedBackgroundImage = localStorage.getItem("backgroundImage");
     const savedLogoImage = localStorage.getItem("logoImage");
     
@@ -89,10 +86,7 @@ const LoginPage = () => {
         )}
         
         <CardHeader>
-          <CardTitle className="text-2xl text-center">Sign In</CardTitle>
-          <CardDescription className="text-center">
-            Enter your credentials to access your account
-          </CardDescription>
+          <CardTitle className="text-2xl text-center">Domain Reports</CardTitle>
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
@@ -142,11 +136,6 @@ const LoginPage = () => {
             </Button>
           </CardFooter>
         </form>
-        <div className="px-8 pb-6 text-center">
-          <div className="text-xs text-muted-foreground mt-4">
-            Demo account: <span className="font-mono">admin@example.com</span> / <span className="font-mono">password</span>
-          </div>
-        </div>
       </Card>
     </div>
   );
