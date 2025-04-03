@@ -1,8 +1,10 @@
-
 // Managing local storage state
+import { getDatabaseConnectionString, isDatabaseConfigured } from './database-config';
+
 let storageStatus = {
   initialized: false,
-  error: null as string | null
+  error: null as string | null,
+  usingExternalDb: false
 };
 
 // Initialize local storage for domain data
@@ -18,6 +20,9 @@ export const initializeStorage = async (isPersistent: boolean = true) => {
     if (!localStorage.getItem("domains")) {
       localStorage.setItem("domains", JSON.stringify([]));
     }
+    
+    // Check if external database is configured
+    storageStatus.usingExternalDb = isDatabaseConfigured();
     
     storageStatus.initialized = true;
     storageStatus.error = null;
@@ -42,8 +47,27 @@ export const getStorageError = () => {
 
 // Mock MongoDB functions that now use localStorage instead
 export const initializeDb = async (mongoUri: string = "") => {
-  // We're no longer doing MongoDB simulation, just fall back to local storage
-  return await initializeStorage();
+  try {
+    // If a connection string is provided, use it
+    if (mongoUri) {
+      // In a real application, you would initialize a MongoDB client here
+      console.log("Initializing with provided connection string");
+    } else {
+      // Otherwise use the stored connection string if available
+      const existingConnectionString = getDatabaseConnectionString();
+      if (existingConnectionString) {
+        console.log("Using existing connection string");
+      } else {
+        console.log("No connection string found, falling back to local storage");
+      }
+    }
+    
+    // For now, we'll just use local storage
+    return await initializeStorage();
+  } catch (error) {
+    console.error("Failed to initialize database:", error);
+    return false;
+  }
 };
 
 export const getDb = () => {
@@ -116,4 +140,8 @@ export const getConnectionError = () => {
 export const closeDb = async () => {
   storageStatus.initialized = false;
   console.log("Local storage connection closed");
+};
+
+export const isUsingExternalDatabase = () => {
+  return storageStatus.usingExternalDb;
 };

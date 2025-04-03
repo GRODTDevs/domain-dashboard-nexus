@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { 
@@ -96,12 +95,9 @@ export function UserList() {
           icon={Users}
           title="No users found"
           description="Get started by adding a new user."
-          action={
-            <Button onClick={handleAddNew}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add User
-            </Button>
-          }
+          actionLabel="Add User"
+          actionIcon={Plus}
+          onAction={handleAddNew}
         />
         
         <UserDialog
