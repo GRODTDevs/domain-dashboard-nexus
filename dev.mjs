@@ -21,11 +21,10 @@ function runCommand(command, args, options = {}) {
 console.log('🚀 Starting development environment...');
 
 // Start the Vite dev server for the client
-// Using npx with the --no-install flag to avoid using top-level await
 const clientProcess = runCommand('npx', ['--no-install', 'vite', '--port', '8080']);
 
-// Start the backend server - using Node.js to run the ES Module file
-const serverProcess = runCommand('node', ['server.mjs']);
+// Start the backend server with a specific Node.js version if available
+const serverProcess = runCommand('node', ['--no-warnings', 'server.mjs']);
 
 // Handle process termination
 process.on('SIGINT', () => {
