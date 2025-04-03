@@ -8,8 +8,11 @@ import React from 'react'
 const rootElement = document.getElementById("root");
 if (!rootElement) throw new Error("Failed to find the root element");
 
+// Create root outside of any async operations
+const root = createRoot(rootElement);
+
 // Render the app immediately without waiting for any initialization
-createRoot(rootElement).render(
+root.render(
   <React.StrictMode>
     <App />
   </React.StrictMode>
