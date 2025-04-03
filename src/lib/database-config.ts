@@ -3,6 +3,7 @@
 
 // We'll store connection information but not attempt to connect from the browser
 let DATABASE_URL = '';
+let DATABASE_INSTALLED = false;
 
 /**
  * Set the database connection string
@@ -53,6 +54,32 @@ export const getDatabaseConnectionString = (): string => {
  */
 export const isDatabaseConfigured = (): boolean => {
   return !!getDatabaseConnectionString();
+};
+
+/**
+ * Check if the database has been installed
+ * @returns True if the database has been installed, false otherwise
+ */
+export const isDatabaseInstalled = (): boolean => {
+  try {
+    const installed = localStorage.getItem('mongodb_installed');
+    return installed === 'true';
+  } catch (error) {
+    console.warn('Could not check if database is installed', error);
+    return false;
+  }
+};
+
+/**
+ * Set the database installation status
+ * @param installed True if the database has been installed, false otherwise
+ */
+export const setDatabaseInstalled = (installed: boolean): void => {
+  try {
+    localStorage.setItem('mongodb_installed', installed ? 'true' : 'false');
+  } catch (error) {
+    console.warn('Could not save database installation status', error);
+  }
 };
 
 /**

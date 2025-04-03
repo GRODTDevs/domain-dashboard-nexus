@@ -3,11 +3,11 @@ import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { initializeStorage } from "@/lib/db";
-import { Loader2 } from "lucide-react";
+import { initializeStorage, isDatabaseInstalled } from "@/lib/db";
+import { Loader2, CheckCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
-import { setDatabaseConnectionString, initializeDatabase } from "@/lib/database-config";
+import { setDatabaseConnectionString, isDatabaseConfigured, isDatabaseInstalled as configIsDatabaseInstalled } from "@/lib/database-config";
 
 interface DatabaseConnectionDialogProps {
   isOpen: boolean;
@@ -17,12 +17,16 @@ interface DatabaseConnectionDialogProps {
 export function DatabaseConnectionDialog({ isOpen, onOpenChange }: DatabaseConnectionDialogProps) {
   const [isConnecting, setIsConnecting] = useState(false);
   const [connectionString, setConnectionString] = useState('');
+  const [installStatus, setInstallStatus] = useState(configIsDatabaseInstalled());
   const { toast } = useToast();
 
   // Load existing connection string from env if available
   useEffect(() => {
-    if (isOpen && import.meta.env.VITE_MONGODB_URI) {
-      setConnectionString('(Using connection string from environment variable)');
+    if (isOpen) {
+      if (import.meta.env.VITE_MONGODB_URI) {
+        setConnectionString('(Using connection string from environment variable)');
+      }
+      setInstallStatus(configIsDatabaseInstalled());
     }
   }, [isOpen]);
 
@@ -49,6 +53,9 @@ export function DatabaseConnectionDialog({ isOpen, onOpenChange }: DatabaseConne
       if (!initialized) {
         throw new Error("Failed to initialize MongoDB connection");
       }
+      
+      // Update installation status
+      setInstallStatus(configIsDatabaseInstalled());
       
       toast({
         title: "MongoDB Connection Configured",
@@ -103,6 +110,14 @@ export function DatabaseConnectionDialog({ isOpen, onOpenChange }: DatabaseConne
               </p>
             )}
           </div>
+          
+          {/* Installation status */}
+          {installStatus && (
+            <div className="flex items-center gap-2 text-sm">
+              <CheckCircle className="h-4 w-4 text-green-500" />
+              <span>Database initialized with sample data</span>
+            </div>
+          )}
         </div>
         <DialogFooter>
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>

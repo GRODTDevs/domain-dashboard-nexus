@@ -1,12 +1,13 @@
 
 // MongoDB Database Management
 
-import { getDatabaseConnectionString } from './database-config';
+import { getDatabaseConnectionString, isDatabaseInstalled, setDatabaseInstalled } from './database-config';
 
 let storageStatus = {
   initialized: false,
   error: null as string | null,
-  usingExternalDb: true
+  usingExternalDb: true,
+  installed: false
 };
 
 // Initialize storage
@@ -24,18 +25,49 @@ export const initializeStorage = async () => {
     // Test the connection via the server if we're in a browser environment
     if (typeof window !== 'undefined') {
       try {
-        // Simply ping the server to see if the connection works
-        const response = await fetch('/api/db/status');
-        if (!response.ok) {
-          const data = await response.json();
+        // Check connection status
+        const statusResponse = await fetch(`/api/db/status?uri=${encodeURIComponent(mongoUri)}`);
+        if (!statusResponse.ok) {
+          const data = await statusResponse.json();
           throw new Error(data.message || 'Failed to connect to MongoDB');
         }
         
         console.log("MongoDB connection tested successfully via server API");
+        
+        // Check if database is installed
+        const isInstalled = isDatabaseInstalled();
+        
+        if (!isInstalled) {
+          console.log("Database not installed, initializing...");
+          
+          // Initialize the database
+          const initResponse = await fetch('/api/db/init', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ uri: mongoUri })
+          });
+          
+          if (!initResponse.ok) {
+            const data = await initResponse.json();
+            throw new Error(data.message || 'Failed to initialize MongoDB');
+          }
+          
+          const initData = await initResponse.json();
+          console.log("Database initialized successfully:", initData);
+          
+          // Mark as installed
+          setDatabaseInstalled(true);
+          storageStatus.installed = true;
+        } else {
+          console.log("Database already installed");
+          storageStatus.installed = true;
+        }
+        
       } catch (error) {
-        // If the server API endpoint doesn't exist yet, we'll assume the connection is OK
-        // as long as we have a connection string
-        console.log("Cannot test MongoDB connection - assuming it's configured properly based on connection string");
+        // Log error but don't throw - we'll assume it's configured properly based on connection string
+        console.warn("Could not fully initialize MongoDB:", error);
       }
     }
     
@@ -60,6 +92,10 @@ export const isStorageInitialized = () => {
 
 export const getStorageError = () => {
   return storageStatus.error;
+};
+
+export const isDatabaseInstalled = () => {
+  return storageStatus.installed;
 };
 
 // Initialize database with connection string
