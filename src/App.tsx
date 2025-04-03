@@ -16,10 +16,45 @@ import DomainNewPage from "./pages/domain-new";
 import DomainEditPage from "./pages/domain-edit";
 import SettingsPage from "./pages/settings";
 import UsersPage from "./pages/users";
+import { useState, useEffect } from "react";
 
 const App = () => {
-  // Move QueryClient creation inside the component
-  const queryClient = new QueryClient();
+  // Create a new QueryClient instance
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: 1,
+        refetchOnWindowFocus: false,
+      },
+    },
+  });
+  
+  // Add state to track app initialization
+  const [isInitialized, setIsInitialized] = useState(false);
+  
+  useEffect(() => {
+    // Simulate any initialization tasks
+    const initApp = async () => {
+      try {
+        // Add any initialization logic here if needed
+        setIsInitialized(true);
+      } catch (error) {
+        console.error("Error initializing app:", error);
+        setIsInitialized(true); // Still set to true so the app renders
+      }
+    };
+    
+    initApp();
+  }, []);
+  
+  // Show loading state while initializing
+  if (!isInitialized) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-background">
+        <div className="text-lg">Loading application...</div>
+      </div>
+    );
+  }
   
   return (
     <QueryClientProvider client={queryClient}>

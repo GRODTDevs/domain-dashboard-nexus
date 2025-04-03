@@ -41,10 +41,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check for existing session
-    const storedUser = localStorage.getItem("user");
+    // Check for existing session from both localStorage and sessionStorage
+    const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
     if (storedUser) {
-      setUser(JSON.parse(storedUser));
+      try {
+        setUser(JSON.parse(storedUser));
+      } catch (error) {
+        console.error("Failed to parse stored user:", error);
+        // Clear invalid storage
+        localStorage.removeItem("user");
+        sessionStorage.removeItem("user");
+      }
     }
     setIsLoading(false);
   }, []);
@@ -64,6 +71,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // Store user in localStorage if rememberMe is true or remove if false
       if (rememberMe) {
         localStorage.setItem("user", JSON.stringify(userWithoutPassword));
+        sessionStorage.removeItem("user");
       } else {
         // For non-remembered sessions, we'll use sessionStorage instead
         sessionStorage.setItem("user", JSON.stringify(userWithoutPassword));
