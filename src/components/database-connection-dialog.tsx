@@ -1,19 +1,14 @@
+
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { initializeStorage, isDatabaseInstalled } from "@/lib/db";
-import { Loader2, CheckCircle, AlertCircle, Info } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { Input } from "@/components/ui/input";
-import { 
-  setDatabaseConnectionString, 
-  isDatabaseConfigured, 
-  isDatabaseInstalled as configIsDatabaseInstalled, 
-  validateConnectionString,
-  setDatabaseInstalled 
-} from "@/lib/database-config";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Loader2 } from "lucide-react";
+import { isDatabaseInstalled as configIsDatabaseInstalled } from "@/lib/database-config";
+import { ConnectionStatusAlert } from "@/components/database/connection-status-alert";
+import { ConnectionStringInput } from "@/components/database/connection-string-input";
+import { ConnectionError } from "@/components/database/connection-error";
+import { InstallationStatus } from "@/components/database/installation-status";
+import { useDatabaseConnection } from "@/hooks/use-database-connection";
 
 interface DatabaseConnectionDialogProps {
   isOpen: boolean;
@@ -21,12 +16,10 @@ interface DatabaseConnectionDialogProps {
 }
 
 export function DatabaseConnectionDialog({ isOpen, onOpenChange }: DatabaseConnectionDialogProps) {
-  const [isConnecting, setIsConnecting] = useState(false);
   const [connectionString, setConnectionString] = useState('');
-  const [connectionError, setConnectionError] = useState<string | null>(null);
   const [installStatus, setInstallStatus] = useState(configIsDatabaseInstalled());
   const [envVariablePresent, setEnvVariablePresent] = useState(false);
-  const { toast } = useToast();
+  const { isConnecting, connectionError, connect, setConnectionError } = useDatabaseConnection();
 
   useEffect(() => {
     if (isOpen) {
@@ -52,95 +45,12 @@ export function DatabaseConnectionDialog({ isOpen, onOpenChange }: DatabaseConne
       setInstallStatus(configIsDatabaseInstalled());
       setConnectionError(null);
     }
-  }, [isOpen]);
+  }, [isOpen, setConnectionError]);
 
   const handleConnect = async () => {
-    setIsConnecting(true);
-    setConnectionError(null);
-    
-    try {
-      if (!connectionString && !import.meta.env.VITE_MONGODB_URI) {
-        throw new Error("MongoDB connection string is required");
-      }
-      
-      console.log("Dialog: Connecting with connection string");
-      
-      if (connectionString && !connectionString.includes('(Using connection string from environment variable)')) {
-        console.log("Dialog: Validating user-provided connection string");
-        if (!validateConnectionString(connectionString)) {
-          throw new Error("Invalid MongoDB connection string format. Should start with mongodb:// or mongodb+srv://");
-        }
-        
-        console.log("Dialog: Setting database connection string");
-        setDatabaseConnectionString(connectionString);
-      }
-      
-      console.log("Dialog: Testing connection via API");
-      
-      try {
-        const response = await fetch('/api/db/status' + 
-          (connectionString && !connectionString.includes('(Using') ? 
-            `?uri=${encodeURIComponent(connectionString)}` : ''));
-        
-        if (!response.ok) {
-          const data = await response.json();
-          throw new Error(data.message || "Failed to connect to MongoDB");
-        }
-        
-        const data = await response.json();
-        console.log("Dialog: Connection status response:", data);
-        
-        if (!data.connected) {
-          throw new Error("Could not connect to MongoDB. Please check your connection string.");
-        }
-        
-        if (!configIsDatabaseInstalled()) {
-          console.log("Dialog: Initializing database");
-          const initResponse = await fetch('/api/db/init', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              uri: connectionString && !connectionString.includes('(Using') ? 
-                connectionString : undefined
-            })
-          });
-          
-          if (!initResponse.ok) {
-            const initData = await initResponse.json();
-            console.error("Dialog: Database initialization failed:", initData);
-            throw new Error(initData.message || "Failed to initialize MongoDB database.");
-          }
-          
-          const initData = await initResponse.json();
-          console.log("Dialog: Database initialization succeeded:", initData);
-          setDatabaseInstalled(true);
-        }
-      } catch (error) {
-        console.error("Dialog: API connection test failed:", error);
-        throw error;
-      }
-      
-      toast({
-        title: "MongoDB Connection Configured",
-        description: "Your MongoDB connection has been successfully configured."
-      });
-      
+    const success = await connect(connectionString);
+    if (success) {
       window.location.reload();
-      
-    } catch (error) {
-      console.error("Dialog: Error connecting to database:", error);
-      const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
-      setConnectionError(errorMessage);
-      
-      toast({
-        title: "Connection Error",
-        description: errorMessage,
-        variant: "destructive",
-      });
-    } finally {
-      setIsConnecting(false);
     }
   };
 
@@ -154,53 +64,17 @@ export function DatabaseConnectionDialog({ isOpen, onOpenChange }: DatabaseConne
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
-          <Alert variant={envVariablePresent ? "default" : "destructive"}>
-            <Info className="h-4 w-4" />
-            <AlertDescription>
-              {envVariablePresent 
-                ? "Using MongoDB connection string from environment variable."
-                : "No VITE_MONGODB_URI environment variable found."}
-            </AlertDescription>
-          </Alert>
+          <ConnectionStatusAlert envVariablePresent={envVariablePresent} />
           
-          <div className="grid gap-2">
-            <Label htmlFor="connection-string">MongoDB Connection String</Label>
-            <Input 
-              id="connection-string"
-              type="text"
-              placeholder={import.meta.env.VITE_MONGODB_URI ? 
-                "(Using connection string from environment variable)" : 
-                "mongodb://username:password@host:port/database"}
-              value={connectionString}
-              onChange={(e) => setConnectionString(e.target.value)}
-              className="w-full"
-              disabled={!!import.meta.env.VITE_MONGODB_URI}
-            />
-            {import.meta.env.VITE_MONGODB_URI ? (
-              <p className="text-xs text-muted-foreground">
-                Using MongoDB connection string from environment variable. To override, remove the VITE_MONGODB_URI environment variable.
-              </p>
-            ) : (
-              <p className="text-xs text-muted-foreground">
-                Enter your MongoDB connection string to connect to your database. 
-                Alternatively, you can set the VITE_MONGODB_URI environment variable.
-              </p>
-            )}
-          </div>
+          <ConnectionStringInput 
+            connectionString={connectionString}
+            onChange={setConnectionString}
+            disabled={!!import.meta.env.VITE_MONGODB_URI}
+          />
           
-          {connectionError && (
-            <div className="flex items-center gap-2 text-sm text-destructive">
-              <AlertCircle className="h-4 w-4" />
-              <span>{connectionError}</span>
-            </div>
-          )}
+          <ConnectionError error={connectionError} />
           
-          {installStatus && (
-            <div className="flex items-center gap-2 text-sm">
-              <CheckCircle className="h-4 w-4 text-green-500" />
-              <span>Database initialized with collections and sample data</span>
-            </div>
-          )}
+          <InstallationStatus isInstalled={installStatus} />
         </div>
         <DialogFooter>
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
