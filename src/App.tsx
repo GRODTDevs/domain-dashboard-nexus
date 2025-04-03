@@ -16,57 +16,60 @@ import DomainNewPage from "./pages/domain-new";
 import DomainEditPage from "./pages/domain-edit";
 import SettingsPage from "./pages/settings";
 
-const queryClient = new QueryClient();
-
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            {/* Public routes */}
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/" element={<Index />} />
-            
-            {/* Protected routes */}
-            <Route path="/dashboard" element={
-              <ProtectedRoute>
-                <Dashboard />
-              </ProtectedRoute>
-            } />
-            <Route path="/domains" element={
-              <ProtectedRoute>
-                <DomainsListPage />
-              </ProtectedRoute>
-            } />
-            <Route path="/domains/:id" element={
-              <ProtectedRoute>
-                <DomainDetailPage />
-              </ProtectedRoute>
-            } />
-            <Route path="/domains/new" element={
-              <ProtectedRoute>
-                <DomainNewPage />
-              </ProtectedRoute>
-            } />
-            <Route path="/domains/:id/edit" element={
-              <ProtectedRoute>
-                <DomainEditPage />
-              </ProtectedRoute>
-            } />
-            <Route path="/settings" element={
-              <ProtectedRoute>
-                <SettingsPage />
-              </ProtectedRoute>
-            } />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
-    </AuthProvider>
-  </QueryClientProvider>
-);
+const App = () => {
+  // Move QueryClient creation inside the component
+  const queryClient = new QueryClient();
+  
+  return (
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              {/* Public routes */}
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/" element={<Index />} />
+              
+              {/* Protected routes */}
+              <Route path="/dashboard" element={
+                <ProtectedRoute>
+                  <Dashboard />
+                </ProtectedRoute>
+              } />
+              <Route path="/domains" element={
+                <ProtectedRoute>
+                  <DomainsListPage />
+                </ProtectedRoute>
+              } />
+              <Route path="/domains/:id" element={
+                <ProtectedRoute>
+                  <DomainDetailPage />
+                </ProtectedRoute>
+              } />
+              <Route path="/domains/new" element={
+                <ProtectedRoute>
+                  <DomainNewPage />
+                </ProtectedRoute>
+              } />
+              <Route path="/domains/:id/edit" element={
+                <ProtectedRoute>
+                  <DomainEditPage />
+                </ProtectedRoute>
+              } />
+              <Route path="/settings" element={
+                <ProtectedRoute>
+                  <SettingsPage />
+                </ProtectedRoute>
+              } />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </AuthProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;

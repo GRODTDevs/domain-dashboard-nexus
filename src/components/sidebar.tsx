@@ -33,8 +33,8 @@ export function Sidebar() {
   return (
     <div 
       className={cn(
-        "flex flex-col border-r bg-sidebar text-sidebar-foreground transition-all duration-300 ease-in-out",
-        collapsed ? "w-[70px]" : "w-[250px]"
+        "sidebar flex flex-col border-r bg-sidebar text-sidebar-foreground transition-all duration-300 ease-in-out",
+        collapsed ? "collapsed w-[70px]" : "w-[250px]"
       )}
     >
       <div className="flex items-center justify-between p-4">

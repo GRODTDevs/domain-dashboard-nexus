@@ -4,11 +4,43 @@ import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { LogOutIcon, UserIcon } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useContext } from "react";
+import { useState, useEffect } from "react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export const UserMenu = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  
+  // Check if sidebar is collapsed by looking for the class
+  useEffect(() => {
+    const checkSidebarState = () => {
+      const sidebarEl = document.querySelector(".sidebar");
+      if (sidebarEl) {
+        setIsCollapsed(sidebarEl.classList.contains("collapsed") || window.innerWidth < 768);
+      }
+    };
+    
+    // Initial check
+    checkSidebarState();
+    
+    // Add a mutation observer to detect changes in the sidebar class
+    const observer = new MutationObserver(checkSidebarState);
+    const sidebarEl = document.querySelector(".sidebar");
+    
+    if (sidebarEl) {
+      observer.observe(sidebarEl, { attributes: true, attributeFilter: ["class"] });
+    }
+    
+    // Also listen for window resize events
+    window.addEventListener("resize", checkSidebarState);
+    
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", checkSidebarState);
+    };
+  }, []);
 
   const handleLogout = () => {
     logout();
@@ -17,14 +49,9 @@ export const UserMenu = () => {
 
   if (!user) return null;
 
-  // Check if sidebar is collapsed by looking at parent width
-  const isSidebarCollapsed = 
-    document.querySelector(".sidebar")?.classList.contains("collapsed") ||
-    window.innerWidth < 768;
-
   return (
     <div className="border-t border-sidebar-border pt-4 mt-auto">
-      {!isSidebarCollapsed ? (
+      {!isCollapsed && !isMobile ? (
         // Full UserMenu when sidebar is expanded
         <>
           <div className="flex items-center gap-3 px-3 py-2">
