@@ -38,7 +38,15 @@ export function Sidebar() {
       )}
     >
       <div className="flex items-center justify-between p-4">
-        {!collapsed && <div className="text-lg font-semibold">Domain Nexus</div>}
+        {!collapsed ? (
+          <div className="text-lg font-semibold">
+            <img 
+              src={localStorage.getItem("logoImage") || ""} 
+              alt="Logo" 
+              className="h-8 max-w-[180px] object-contain"
+            />
+          </div>
+        ) : null}
         <Button 
           variant="ghost" 
           size="sm" 

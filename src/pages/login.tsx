@@ -75,15 +75,16 @@ const LoginPage = () => {
 
   return (
     <div 
-      className="min-h-screen flex items-center justify-center p-4 bg-cover bg-center"
+      className="min-h-screen flex items-center justify-center p-4 bg-cover"
       style={{
         backgroundImage: backgroundImage ? `url(${backgroundImage})` : 'none',
-        backgroundColor: backgroundImage ? undefined : 'var(--background)'
+        backgroundColor: backgroundImage ? undefined : 'var(--background)',
+        backgroundPosition: 'top center'
       }}
     >
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm"></div>
+      {backgroundImage && <div className="absolute inset-0 bg-black/40"></div>}
       
-      <Card className="w-full max-w-md relative z-10 bg-background/80 backdrop-blur-md border-background/10">
+      <Card className="w-full max-w-md relative z-10 bg-background/80 border-background/10">
         {logoImage && (
           <div className="flex justify-center mt-6">
             <img
@@ -95,7 +96,7 @@ const LoginPage = () => {
         )}
         
         <CardHeader>
-          <CardTitle className="text-2xl text-center">Domain Reports</CardTitle>
+          <CardTitle className="text-2xl text-center">Full Stack Hub</CardTitle>
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
