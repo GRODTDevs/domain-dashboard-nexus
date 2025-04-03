@@ -32,9 +32,9 @@ async function startDev() {
   if (shouldBuild) {
     console.log('Building the application first...');
     
-    // Use a simple alternative for older Node.js versions - fallback to direct command
-    const buildProcess = runCommand('vite', ['build'], {
-      env: { ...process.env, NODE_OPTIONS: '' }
+    // Use npm run to ensure vite is found through node_modules
+    const buildProcess = runCommand('npm', ['run', 'build'], {
+      env: { ...process.env }
     });
     
     // Wait for build to complete
@@ -54,13 +54,9 @@ async function startDev() {
   // Start the backend server with older Node.js compatibility
   const serverProcess = runCommand('node', ['server.mjs']);
 
-  // Use direct command for Vite development server
-  const clientProcess = runCommand('vite', [
-    '--port', 
-    '8080',
-    '--host'
-  ], {
-    env: { ...process.env, NODE_OPTIONS: '' }
+  // Use npm run dev for the development server
+  const clientProcess = runCommand('npm', ['run', 'dev'], {
+    env: { ...process.env }
   });
 
   // Handle process termination
