@@ -32,11 +32,10 @@ async function startDev() {
   if (shouldBuild) {
     console.log('Building the application first...');
     
-    // Use a more compatible build approach - falling back to legacy build
-    const buildProcess = runCommand('node', [
-      './node_modules/.bin/vite', 
-      'build'
-    ]);
+    // Use a simple alternative for older Node.js versions - fallback to direct command
+    const buildProcess = runCommand('vite', ['build'], {
+      env: { ...process.env, NODE_OPTIONS: '' }
+    });
     
     // Wait for build to complete
     await new Promise((resolve) => {
@@ -55,13 +54,14 @@ async function startDev() {
   // Start the backend server with older Node.js compatibility
   const serverProcess = runCommand('node', ['server.mjs']);
 
-  // Use the .bin directory path for a more compatible way to start Vite
-  const clientProcess = runCommand('node', [
-    './node_modules/.bin/vite',
+  // Use direct command for Vite development server
+  const clientProcess = runCommand('vite', [
     '--port', 
     '8080',
     '--host'
-  ]);
+  ], {
+    env: { ...process.env, NODE_OPTIONS: '' }
+  });
 
   // Handle process termination
   process.on('SIGINT', () => {
