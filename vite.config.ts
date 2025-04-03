@@ -39,8 +39,10 @@ export default defineConfig(({ mode }) => ({
     },
     target: 'es2020', // Target modern browsers
   },
-  // Make sure to load .env.local file
-  envDir: '.',
+  // Make sure to load .env.local file (and .env)
+  envDir: '.', // Set the directory where env files should be loaded from
+  // Define environment variables that should be exposed to the client
+  envPrefix: ['VITE_'], // Only expose variables with VITE_ prefix
   // Define specific optimizations for browser compatibility
   optimizeDeps: {
     exclude: ['mongodb'], // Exclude mongodb from optimization

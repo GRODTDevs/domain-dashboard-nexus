@@ -1,5 +1,6 @@
 
 // Database configuration
+import { parse as parseUrl } from 'url';
 
 let DATABASE_URL = '';
 let DATABASE_INSTALLED = false;
@@ -15,6 +16,7 @@ export const setDatabaseConnectionString = (connectionString: string) => {
   // Save to localStorage for persistence across page reloads
   try {
     localStorage.setItem('mongodb_uri', connectionString);
+    console.log('Saved connection string to localStorage');
   } catch (error) {
     console.warn('Could not save connection string to localStorage', error);
   }
@@ -35,10 +37,20 @@ export const getDatabaseConnectionString = (): string => {
     return import.meta.env.VITE_MONGODB_URI;
   }
   
+  // Check if window._env_ is available (sometimes used for runtime env variables)
+  if (typeof window !== 'undefined' && (window as any)._env_ && (window as any)._env_.MONGODB_URI) {
+    console.log('Found MongoDB connection string from window._env_.MONGODB_URI');
+    return (window as any)._env_.MONGODB_URI;
+  }
+  
   // Check if process.env is available (server-side)
-  if (typeof process !== 'undefined' && process.env && process.env.MONGODB_URI) {
-    console.log('Found MongoDB connection string from process.env.MONGODB_URI');
-    return process.env.MONGODB_URI;
+  try {
+    if (typeof process !== 'undefined' && process.env && process.env.MONGODB_URI) {
+      console.log('Found MongoDB connection string from process.env.MONGODB_URI');
+      return process.env.MONGODB_URI;
+    }
+  } catch (error) {
+    console.warn('Error accessing process.env.MONGODB_URI', error);
   }
   
   // Next, check if we have a saved connection string in localStorage
@@ -55,6 +67,34 @@ export const getDatabaseConnectionString = (): string => {
   
   console.log('No MongoDB connection string found in environment variables or localStorage');
   return DATABASE_URL;
+};
+
+/**
+ * Validate if a connection string has proper MongoDB format
+ * @param connectionString The connection string to validate
+ * @returns True if valid, false otherwise
+ */
+export const validateConnectionString = (connectionString: string): boolean => {
+  if (!connectionString) return false;
+  
+  // Basic format check
+  if (!connectionString.startsWith('mongodb://') && !connectionString.startsWith('mongodb+srv://')) {
+    console.log('Connection string does not start with mongodb:// or mongodb+srv://');
+    return false;
+  }
+  
+  try {
+    // Parse the URL to check for basic components
+    const parsedUrl = parseUrl(connectionString);
+    if (!parsedUrl.hostname) {
+      console.log('Connection string is missing hostname');
+      return false;
+    }
+    return true;
+  } catch (error) {
+    console.error('Failed to parse MongoDB connection string:', error);
+    return false;
+  }
 };
 
 /**
@@ -119,7 +159,7 @@ export const initializeDatabase = async (): Promise<boolean> => {
   
   try {
     // Validate that the string looks like a MongoDB connection string
-    if (!connectionString.startsWith('mongodb://') && !connectionString.startsWith('mongodb+srv://')) {
+    if (!validateConnectionString(connectionString)) {
       console.error('Invalid MongoDB connection string format');
       return false;
     }

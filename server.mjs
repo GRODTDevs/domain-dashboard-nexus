@@ -6,11 +6,39 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { MongoClient } from 'mongodb';
 import dotenv from 'dotenv';
+import fs from 'fs';
 
-// Load environment variables from .env file
-console.log('Server: Loading environment variables from .env file');
-dotenv.config();
+// Load environment variables from .env file with more debugging
+console.log('Server: Attempting to load environment variables from .env file');
+const envPath = path.resolve('.env');
+console.log('Server: Looking for .env file at path:', envPath);
+
+try {
+  if (fs.existsSync(envPath)) {
+    console.log('Server: .env file exists, loading now');
+    dotenv.config({ path: envPath });
+    console.log('Server: Loaded .env file successfully');
+  } else {
+    console.log('Server: .env file not found at path:', envPath);
+    // Try loading from project root as fallback
+    const rootEnvPath = path.resolve(process.cwd(), '.env');
+    console.log('Server: Trying fallback path:', rootEnvPath);
+    
+    if (fs.existsSync(rootEnvPath)) {
+      console.log('Server: .env file found at fallback path, loading now');
+      dotenv.config({ path: rootEnvPath });
+    } else {
+      console.log('Server: No .env file found at fallback path either');
+    }
+  }
+} catch (error) {
+  console.error('Server: Error loading .env file:', error);
+}
+
 console.log('Server: Environment variables loaded, MONGODB_URI exists:', !!process.env.MONGODB_URI);
+if (process.env.MONGODB_URI) {
+  console.log('Server: MONGODB_URI value starts with:', process.env.MONGODB_URI.substring(0, 10) + '...');
+}
 
 // Get directory name in ESM
 const __filename = fileURLToPath(import.meta.url);
@@ -53,6 +81,7 @@ app.get('/api/db/status', async (req, res) => {
     const mongoUri = process.env.MONGODB_URI || req.query.uri;
     
     console.log(`Server: Checking MongoDB connection with URI ${mongoUri ? 'provided' : 'missing'}`);
+    console.log('Server: MongoDB URI first 10 chars:', mongoUri ? mongoUri.substring(0, 10) + '...' : 'undefined');
     
     if (!mongoUri) {
       console.error('Server: No MongoDB connection string provided');
