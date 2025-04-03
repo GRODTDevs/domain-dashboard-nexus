@@ -2,10 +2,27 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { initializeStorage, isStorageInitialized } from "@/lib/db";
 
 const Index = () => {
   const { isAuthenticated, isLoading } = useAuth();
   const navigate = useNavigate();
+  
+  // Effect to initialize database
+  useEffect(() => {
+    const initDb = async () => {
+      if (!isStorageInitialized()) {
+        try {
+          console.log("Index: Attempting to initialize database connection");
+          await initializeStorage();
+        } catch (error) {
+          console.error("Failed to initialize database:", error);
+        }
+      }
+    };
+    
+    initDb();
+  }, []);
   
   useEffect(() => {
     if (!isLoading) {

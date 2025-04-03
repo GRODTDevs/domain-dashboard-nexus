@@ -1,7 +1,6 @@
 
 // Database configuration
 
-// We'll store connection information but not attempt to connect from the browser
 let DATABASE_URL = '';
 let DATABASE_INSTALLED = false;
 
@@ -29,9 +28,9 @@ export const setDatabaseConnectionString = (connectionString: string) => {
  */
 export const getDatabaseConnectionString = (): string => {
   // First check if we have an environment variable (for production/deployment)
-  if (import.meta.env.VITE_MONGODB_URI) {
+  if (import.meta.env.VITE_MONGODB_URI || process.env.MONGODB_URI) {
     console.log('Using MongoDB connection string from environment variable');
-    return import.meta.env.VITE_MONGODB_URI;
+    return import.meta.env.VITE_MONGODB_URI || process.env.MONGODB_URI || '';
   }
   
   // Next, check if we have a saved connection string in localStorage
@@ -61,6 +60,12 @@ export const isDatabaseConfigured = (): boolean => {
  * @returns True if the database has been installed, false otherwise
  */
 export const isDatabaseInstalled = (): boolean => {
+  // First check environment variable
+  if (process.env.MONGODB_INSTALLED === 'true') {
+    return true;
+  }
+  
+  // Then check localStorage
   try {
     const installed = localStorage.getItem('mongodb_installed');
     return installed === 'true';

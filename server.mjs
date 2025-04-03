@@ -6,6 +6,10 @@ import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { MongoClient } from 'mongodb';
+import dotenv from 'dotenv';
+
+// Load environment variables from .env file
+dotenv.config();
 
 // Get directory name in ESM
 const __filename = fileURLToPath(import.meta.url);
@@ -39,6 +43,7 @@ app.get('/api/health', (req, res) => {
 // MongoDB connection status endpoint
 app.get('/api/db/status', async (req, res) => {
   try {
+    // First check environment variable, then query parameter
     const mongoUri = process.env.MONGODB_URI || req.query.uri;
     
     if (!mongoUri) {
@@ -48,6 +53,9 @@ app.get('/api/db/status', async (req, res) => {
         message: 'No MongoDB connection string provided' 
       });
     }
+    
+    // Log connection attempt (without exposing sensitive data)
+    console.log('Attempting to connect to MongoDB...');
     
     // Try to connect to MongoDB if not already connected
     if (!mongoClient) {
@@ -82,6 +90,7 @@ app.get('/api/db/status', async (req, res) => {
 // Database initialization endpoint
 app.post('/api/db/init', async (req, res) => {
   try {
+    // First check environment variable, then request body
     const mongoUri = process.env.MONGODB_URI || req.body.uri;
     
     if (!mongoUri) {
@@ -93,6 +102,7 @@ app.post('/api/db/init', async (req, res) => {
     
     // Connect to MongoDB if not already connected
     if (!mongoClient) {
+      console.log('Connecting to MongoDB for initialization...');
       mongoClient = new MongoClient(mongoUri);
       await mongoClient.connect();
       db = mongoClient.db();
@@ -237,6 +247,9 @@ app.post('/api/db/init', async (req, res) => {
       collections: await db.listCollections().toArray()
     });
     
+    // Set a global flag that database is initialized
+    process.env.MONGODB_INSTALLED = 'true';
+    
   } catch (error) {
     console.error('Database initialization error:', error);
     
@@ -261,6 +274,7 @@ app.get('*', (req, res) => {
 function startServer(port) {
   const server = app.listen(port, () => {
     console.log(`Server is running on port ${port}`);
+    console.log(`MongoDB URI is ${process.env.MONGODB_URI ? 'set' : 'not set'}`);
   });
   
   server.on('error', (err) => {
