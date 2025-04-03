@@ -1,85 +1,119 @@
-// Managing MongoDB connection state
-let connectionStatus = {
-  connected: false,
-  connectionString: "",
+
+// Managing local storage state
+let storageStatus = {
+  initialized: false,
   error: null as string | null
 };
 
-// Default MongoDB connection string
-const DEFAULT_MONGO_URI = "mongodb+srv://shauncheeseman:<db_password>@cluster0.if6uc.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
-
-// This is a mock version that works in the browser
-export const initializeDb = async (mongoUri: string = DEFAULT_MONGO_URI) => {
+// Initialize local storage for domain data
+export const initializeStorage = async (isPersistent: boolean = true) => {
   try {
-    // Simulate a connection attempt
-    console.log("Attempting to connect to MongoDB with URI:", mongoUri);
+    // Set up local storage for our application
+    console.log("Initializing local storage");
     
-    // In a real application, we would make an API call to a backend service
-    // that would handle the actual MongoDB connection
+    // Store the persistence preference
+    localStorage.setItem("data_persistence_enabled", isPersistent.toString());
     
-    // Store connection information for future reference
-    connectionStatus.connectionString = mongoUri;
-    connectionStatus.connected = true;
-    connectionStatus.error = null;
+    // Initialize empty collections if they don't exist
+    if (!localStorage.getItem("domains")) {
+      localStorage.setItem("domains", JSON.stringify([]));
+    }
     
-    console.log("Mock MongoDB connection established");
+    storageStatus.initialized = true;
+    storageStatus.error = null;
+    
+    console.log("Local storage initialized");
     return true;
   } catch (error) {
-    console.error("Failed to connect to MongoDB:", error);
-    connectionStatus.error = error instanceof Error ? error.message : "Unknown error";
-    connectionStatus.connected = false;
+    console.error("Failed to initialize local storage:", error);
+    storageStatus.error = error instanceof Error ? error.message : "Unknown error";
+    storageStatus.initialized = false;
     return false;
   }
 };
 
+export const isStorageInitialized = () => {
+  return storageStatus.initialized || localStorage.getItem("data_persistence_enabled") !== null;
+};
+
+export const getStorageError = () => {
+  return storageStatus.error;
+};
+
+// Mock MongoDB functions that now use localStorage instead
+export const initializeDb = async (mongoUri: string = "") => {
+  // We're no longer doing MongoDB simulation, just fall back to local storage
+  return await initializeStorage();
+};
+
 export const getDb = () => {
-  if (!connectionStatus.connected) {
-    console.warn("MongoDB client not initialized or connected");
+  // This is now just a localStorage wrapper
+  if (!isStorageInitialized()) {
+    console.warn("Storage not initialized");
     return null;
   }
   
-  // This is a mock implementation that would normally return the database instance
-  // In a real application, this would return the database connection
   return {
     collection: (collectionName: string) => ({
       find: () => ({ 
         toArray: async () => {
-          console.log(`Mock find operation on ${collectionName}`);
-          return []; 
+          console.log(`Getting all items from ${collectionName}`);
+          const data = localStorage.getItem(collectionName);
+          return data ? JSON.parse(data) : []; 
         }
       }),
-      findOne: async () => {
-        console.log(`Mock findOne operation on ${collectionName}`);
-        return null;
+      findOne: async (filter: any) => {
+        console.log(`Getting item from ${collectionName}`, filter);
+        const data = localStorage.getItem(collectionName);
+        const items = data ? JSON.parse(data) : [];
+        return items.find((item: any) => item.id === filter.id);
       },
       insertOne: async (doc: any) => {
-        console.log(`Mock insertOne operation on ${collectionName}`, doc);
-        return { insertedId: "mock-id" };
+        console.log(`Adding item to ${collectionName}`, doc);
+        const data = localStorage.getItem(collectionName);
+        const items = data ? JSON.parse(data) : [];
+        items.push(doc);
+        localStorage.setItem(collectionName, JSON.stringify(items));
+        return { insertedId: doc.id };
       },
       updateOne: async (filter: any, update: any) => {
-        console.log(`Mock updateOne operation on ${collectionName}`, { filter, update });
-        return { matchedCount: 1, modifiedCount: 1 };
+        console.log(`Updating item in ${collectionName}`, { filter, update });
+        const data = localStorage.getItem(collectionName);
+        const items = data ? JSON.parse(data) : [];
+        const index = items.findIndex((item: any) => item.id === filter.id);
+        if (index !== -1) {
+          // Handle $set operator if present
+          if (update.$set) {
+            items[index] = { ...items[index], ...update.$set };
+          } else {
+            items[index] = { ...items[index], ...update };
+          }
+          localStorage.setItem(collectionName, JSON.stringify(items));
+          return { matchedCount: 1, modifiedCount: 1 };
+        }
+        return { matchedCount: 0, modifiedCount: 0 };
       },
       deleteOne: async (filter: any) => {
-        console.log(`Mock deleteOne operation on ${collectionName}`, filter);
-        return { deletedCount: 1 };
+        console.log(`Deleting item from ${collectionName}`, filter);
+        const data = localStorage.getItem(collectionName);
+        const items = data ? JSON.parse(data) : [];
+        const newItems = items.filter((item: any) => item.id !== filter.id);
+        localStorage.setItem(collectionName, JSON.stringify(newItems));
+        return { deletedCount: items.length - newItems.length };
       }
     })
   };
 };
 
 export const isDbConnected = () => {
-  return connectionStatus.connected;
+  return isStorageInitialized();
 };
 
 export const getConnectionError = () => {
-  return connectionStatus.error;
+  return getStorageError();
 };
 
 export const closeDb = async () => {
-  // In a real application, this would close the MongoDB connection
-  connectionStatus.connected = false;
-  connectionStatus.connectionString = "";
-  connectionStatus.error = null;
-  console.log("Mock MongoDB connection closed");
+  storageStatus.initialized = false;
+  console.log("Local storage connection closed");
 };
