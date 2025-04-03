@@ -1,5 +1,5 @@
 
-import { spawn } from 'child_process';
+const { spawn } = require('child_process');
 
 // Function to run a command
 function runCommand(command, args, options = {}) {
@@ -19,10 +19,10 @@ function runCommand(command, args, options = {}) {
 // Start both server and client
 console.log('🚀 Starting development environment...');
 
-// Start the Vite dev server for the client
-const clientProcess = runCommand('npm', ['run', 'dev']);
+// Start the Vite dev server for the client using npx to avoid direct Vite execution
+const clientProcess = runCommand('npx', ['vite']);
 
-// Start the backend server with nodemon for auto-restart
+// Start the backend server
 const serverProcess = runCommand('node', ['server.js']);
 
 // Handle process termination
