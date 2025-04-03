@@ -8,11 +8,12 @@ import { Domain } from "@/types/domain";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { createDomain, updateDomain } from "@/lib/api";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, PlusCircle, X } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface DomainFormProps {
   domain?: Domain;
@@ -31,11 +32,38 @@ export function DomainForm({ domain, mode }: DomainFormProps) {
     registeredDate: domain?.registeredDate ? new Date(domain.registeredDate) : new Date(),
     expiryDate: domain?.expiryDate ? new Date(domain.expiryDate) : new Date(),
     autoRenew: domain?.autoRenew || false,
+    nameservers: domain?.nameservers || ["", ""],
   });
+  
+  const handleAddNameserver = () => {
+    setFormData({
+      ...formData,
+      nameservers: [...formData.nameservers, ""]
+    });
+  };
+  
+  const handleRemoveNameserver = (index: number) => {
+    setFormData({
+      ...formData,
+      nameservers: formData.nameservers.filter((_, i) => i !== index)
+    });
+  };
+  
+  const handleNameserverChange = (value: string, index: number) => {
+    const updatedNameservers = [...formData.nameservers];
+    updatedNameservers[index] = value;
+    setFormData({
+      ...formData,
+      nameservers: updatedNameservers
+    });
+  };
   
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setIsSubmitting(true);
+    
+    // Filter out empty nameservers
+    const filteredNameservers = formData.nameservers.filter(ns => ns.trim() !== "");
     
     try {
       if (mode === "create") {
@@ -45,6 +73,7 @@ export function DomainForm({ domain, mode }: DomainFormProps) {
           registeredDate: formData.registeredDate.toISOString().split('T')[0],
           expiryDate: formData.expiryDate.toISOString().split('T')[0],
           autoRenew: formData.autoRenew,
+          nameservers: filteredNameservers,
           status: "active",
         });
         
@@ -61,6 +90,7 @@ export function DomainForm({ domain, mode }: DomainFormProps) {
           registeredDate: formData.registeredDate.toISOString().split('T')[0],
           expiryDate: formData.expiryDate.toISOString().split('T')[0],
           autoRenew: formData.autoRenew,
+          nameservers: filteredNameservers,
         });
         
         toast({
@@ -156,6 +186,50 @@ export function DomainForm({ domain, mode }: DomainFormProps) {
               />
             </PopoverContent>
           </Popover>
+        </div>
+      </div>
+      
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <Label>Nameservers</Label>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={handleAddNameserver}
+          >
+            <PlusCircle className="h-4 w-4 mr-1" /> Add Nameserver
+          </Button>
+        </div>
+        
+        <div className="space-y-2">
+          {formData.nameservers.length === 0 ? (
+            <div className="text-sm text-muted-foreground">No nameservers added</div>
+          ) : (
+            <ScrollArea className="max-h-48">
+              <div className="space-y-2">
+                {formData.nameservers.map((ns, index) => (
+                  <div key={index} className="flex items-center gap-2">
+                    <Input
+                      placeholder={`ns${index + 1}.example.com`}
+                      value={ns}
+                      onChange={(e) => handleNameserverChange(e.target.value, index)}
+                      className="flex-1"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleRemoveNameserver(index)}
+                    >
+                      <X className="h-4 w-4" />
+                      <span className="sr-only">Remove</span>
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </ScrollArea>
+          )}
         </div>
       </div>
       

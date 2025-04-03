@@ -7,13 +7,16 @@ import { useNavigate, useParams } from "react-router-dom";
 import { deleteDomain, fetchDomain } from "@/lib/api";
 import { useEffect, useState } from "react";
 import { Domain } from "@/types/domain";
-import { CalendarIcon, Edit, MoreHorizontal, Trash2 } from "lucide-react";
+import { CalendarIcon, Edit, Globe, MoreHorizontal, Server, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { DomainDetailTabs } from "@/components/domains/domain-detail-tabs";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { ConfirmationDialog } from "@/components/confirmation-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
+import { SEOAnalysisTool } from "@/components/domains/seo-analysis-tool";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 
 export default function DomainDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -139,7 +142,7 @@ export default function DomainDetailPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">Registration Date</CardTitle>
@@ -163,30 +166,56 @@ export default function DomainDetailPage() {
             </div>
           </CardContent>
         </Card>
+        
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Status</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-2">
+              <Globe className="h-4 w-4 text-muted-foreground" />
+              <StatusBadge status={domain.status} />
+              <Badge variant={domain.autoRenew ? "outline" : "secondary"} className="ml-auto">
+                {domain.autoRenew ? "Auto-renew On" : "Auto-renew Off"}
+              </Badge>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Domain Settings</CardTitle>
-          <CardDescription>Configure settings for this domain</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <h3 className="text-sm font-medium mb-1">Auto-Renew</h3>
-              <p className="text-sm text-muted-foreground">
-                {domain.autoRenew
-                  ? "Enabled - Domain will automatically renew before expiration"
-                  : "Disabled - Domain will not automatically renew"}
-              </p>
+      {domain.nameservers && domain.nameservers.length > 0 && (
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Server className="h-4 w-4" /> Nameservers
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+              {domain.nameservers.map((ns, index) => (
+                <div key={index} className="px-3 py-2 bg-muted/50 rounded-md text-sm">
+                  {ns}
+                </div>
+              ))}
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
-      <Separator className="my-6" />
-
-      <DomainDetailTabs domain={domain} onUpdate={loadDomain} />
+      <Tabs defaultValue="details" className="mb-6">
+        <TabsList>
+          <TabsTrigger value="details">Details</TabsTrigger>
+          <TabsTrigger value="seo">SEO Analysis</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="details" className="mt-4 space-y-6">
+          <DomainDetailTabs domain={domain} onUpdate={loadDomain} />
+        </TabsContent>
+        
+        <TabsContent value="seo" className="mt-4">
+          <SEOAnalysisTool domainId={domain.id} domainName={domain.name} />
+        </TabsContent>
+      </Tabs>
 
       <ConfirmationDialog
         isOpen={isConfirmingDelete}

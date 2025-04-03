@@ -27,6 +27,18 @@ export interface DomainFile {
   uploadedAt: string;
 }
 
+export interface SEOAnalysis {
+  id: string;
+  domainId: string;
+  createdAt: string;
+  metaTagsScore: number;
+  speedScore: number;
+  mobileScore: number;
+  accessibilityScore: number;
+  seoScore: number;
+  recommendations: string[];
+}
+
 export interface Domain {
   id: string;
   name: string;
@@ -35,7 +47,9 @@ export interface Domain {
   expiryDate: string;
   status: DomainStatus;
   autoRenew: boolean;
+  nameservers: string[];
   notes: DomainNote[];
   links: DomainLink[];
   files: DomainFile[];
+  seoAnalyses: SEOAnalysis[];
 }

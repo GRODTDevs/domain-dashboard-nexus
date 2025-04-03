@@ -1,4 +1,4 @@
-import { Domain, DomainFile, DomainLink, DomainNote, DomainStatus } from "@/types/domain";
+import { Domain, DomainFile, DomainLink, DomainNote, DomainStatus, SEOAnalysis } from "@/types/domain";
 import { v4 as uuidv4 } from 'uuid';
 
 // User types
@@ -46,6 +46,7 @@ let domains: Domain[] = [
     expiryDate: "2025-01-15",
     status: "active",
     autoRenew: true,
+    nameservers: ["ns1.godaddy.com", "ns2.godaddy.com"],
     notes: [
       {
         id: "n1",
@@ -64,7 +65,24 @@ let domains: Domain[] = [
         createdAt: "2022-01-15T08:35:00Z",
       }
     ],
-    files: []
+    files: [],
+    seoAnalyses: [
+      {
+        id: "seo1",
+        domainId: "1",
+        createdAt: "2023-03-15T10:30:00Z",
+        metaTagsScore: 85,
+        speedScore: 92,
+        mobileScore: 88,
+        accessibilityScore: 76,
+        seoScore: 82,
+        recommendations: [
+          "Add alt text to all images",
+          "Improve mobile page speed",
+          "Fix broken links"
+        ]
+      }
+    ]
   },
   {
     id: "2",
@@ -74,9 +92,11 @@ let domains: Domain[] = [
     expiryDate: "2023-05-10",
     status: "expired",
     autoRenew: false,
+    nameservers: [],
     notes: [],
     links: [],
-    files: []
+    files: [],
+    seoAnalyses: []
   },
   {
     id: "3",
@@ -86,9 +106,11 @@ let domains: Domain[] = [
     expiryDate: "2024-06-01",
     status: "expiring-soon",
     autoRenew: true,
+    nameservers: ["ns3.cloudflare.com", "ns4.cloudflare.com"],
     notes: [],
     links: [],
-    files: []
+    files: [],
+    seoAnalyses: []
   }
 ];
 
@@ -109,19 +131,16 @@ const calculateDomainStatus = (expiryDate: string): DomainStatus => {
 
 // API functions
 export const fetchDomains = async (): Promise<Domain[]> => {
-  // Simulate API call
   await new Promise(resolve => setTimeout(resolve, 500));
   return domains;
 };
 
 export const fetchDomain = async (id: string): Promise<Domain | undefined> => {
-  // Simulate API call
   await new Promise(resolve => setTimeout(resolve, 300));
   return domains.find(domain => domain.id === id);
 };
 
-export const createDomain = async (domain: Omit<Domain, 'id' | 'notes' | 'links' | 'files'>): Promise<Domain> => {
-  // Simulate API call
+export const createDomain = async (domain: Omit<Domain, 'id' | 'notes' | 'links' | 'files' | 'seoAnalyses'>): Promise<Domain> => {
   await new Promise(resolve => setTimeout(resolve, 500));
   
   const newDomain: Domain = {
@@ -131,14 +150,14 @@ export const createDomain = async (domain: Omit<Domain, 'id' | 'notes' | 'links'
     notes: [],
     links: [],
     files: [],
+    seoAnalyses: [],
   };
   
   domains = [...domains, newDomain];
   return newDomain;
 };
 
-export const updateDomain = async (id: string, updates: Partial<Omit<Domain, 'id' | 'notes' | 'links' | 'files'>>): Promise<Domain | undefined> => {
-  // Simulate API call
+export const updateDomain = async (id: string, updates: Partial<Omit<Domain, 'id' | 'notes' | 'links' | 'files' | 'seoAnalyses'>>): Promise<Domain | undefined> => {
   await new Promise(resolve => setTimeout(resolve, 500));
   
   const index = domains.findIndex(d => d.id === id);
@@ -162,7 +181,6 @@ export const updateDomain = async (id: string, updates: Partial<Omit<Domain, 'id
 };
 
 export const deleteDomain = async (id: string): Promise<boolean> => {
-  // Simulate API call
   await new Promise(resolve => setTimeout(resolve, 500));
   
   const initialLength = domains.length;
@@ -264,19 +282,16 @@ export const deleteDomainFile = async (domainId: string, fileId: string): Promis
 
 // User API functions
 export const fetchUsers = async (): Promise<User[]> => {
-  // Simulate API call
   await new Promise(resolve => setTimeout(resolve, 500));
   return users;
 };
 
 export const fetchUser = async (id: string): Promise<User | undefined> => {
-  // Simulate API call
   await new Promise(resolve => setTimeout(resolve, 300));
   return users.find(user => user.id === id);
 };
 
 export const createUser = async (userData: Omit<User, 'id' | 'createdAt'>): Promise<User> => {
-  // Simulate API call
   await new Promise(resolve => setTimeout(resolve, 500));
   
   const newUser: User = {
@@ -290,7 +305,6 @@ export const createUser = async (userData: Omit<User, 'id' | 'createdAt'>): Prom
 };
 
 export const updateUser = async (id: string, updates: Partial<Omit<User, 'id' | 'createdAt'>>): Promise<User | undefined> => {
-  // Simulate API call
   await new Promise(resolve => setTimeout(resolve, 500));
   
   const index = users.findIndex(u => u.id === id);
@@ -311,10 +325,53 @@ export const updateUser = async (id: string, updates: Partial<Omit<User, 'id' | 
 };
 
 export const deleteUser = async (id: string): Promise<boolean> => {
-  // Simulate API call
   await new Promise(resolve => setTimeout(resolve, 500));
   
   const initialLength = users.length;
   users = users.filter(user => user.id !== id);
   return users.length !== initialLength;
+};
+
+// SEO Analysis API
+export const runSEOAnalysis = async (domainId: string): Promise<SEOAnalysis | undefined> => {
+  await new Promise(resolve => setTimeout(resolve, 1500));
+  
+  const domainIndex = domains.findIndex(d => d.id === domainId);
+  if (domainIndex === -1) return undefined;
+  
+  const randomScore = () => Math.floor(Math.random() * 30) + 70;
+  
+  const recommendations = [
+    "Improve meta descriptions for better CTR",
+    "Add more high-quality backlinks",
+    "Optimize images for faster loading",
+    "Fix broken links and 404 errors",
+    "Improve mobile responsiveness",
+    "Add structured data markup"
+  ];
+  
+  const shuffled = [...recommendations].sort(() => 0.5 - Math.random());
+  const selectedRecommendations = shuffled.slice(0, Math.floor(Math.random() * 3) + 2);
+  
+  const newAnalysis: SEOAnalysis = {
+    id: uuidv4(),
+    domainId,
+    createdAt: new Date().toISOString(),
+    metaTagsScore: randomScore(),
+    speedScore: randomScore(),
+    mobileScore: randomScore(),
+    accessibilityScore: randomScore(),
+    seoScore: randomScore(),
+    recommendations: selectedRecommendations
+  };
+  
+  domains[domainIndex].seoAnalyses = [...domains[domainIndex].seoAnalyses, newAnalysis];
+  return newAnalysis;
+};
+
+export const getSEOAnalyses = async (domainId: string): Promise<SEOAnalysis[]> => {
+  await new Promise(resolve => setTimeout(resolve, 300));
+  
+  const domain = domains.find(d => d.id === domainId);
+  return domain?.seoAnalyses || [];
 };
