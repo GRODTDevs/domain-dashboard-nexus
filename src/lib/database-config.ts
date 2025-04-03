@@ -27,10 +27,18 @@ export const setDatabaseConnectionString = (connectionString: string) => {
  * @returns The current database connection string
  */
 export const getDatabaseConnectionString = (): string => {
+  console.log('Checking for MongoDB connection string...');
+  
   // First check if we have an environment variable (for production/deployment)
-  if (import.meta.env.VITE_MONGODB_URI || process.env.MONGODB_URI) {
-    console.log('Using MongoDB connection string from environment variable');
-    return import.meta.env.VITE_MONGODB_URI || process.env.MONGODB_URI || '';
+  if (import.meta.env.VITE_MONGODB_URI) {
+    console.log('Found MongoDB connection string from VITE_MONGODB_URI environment variable');
+    return import.meta.env.VITE_MONGODB_URI;
+  }
+  
+  // Check if process.env is available (server-side)
+  if (typeof process !== 'undefined' && process.env && process.env.MONGODB_URI) {
+    console.log('Found MongoDB connection string from process.env.MONGODB_URI');
+    return process.env.MONGODB_URI;
   }
   
   // Next, check if we have a saved connection string in localStorage
@@ -39,11 +47,13 @@ export const getDatabaseConnectionString = (): string => {
     if (savedConnectionString) {
       console.log('Using MongoDB connection string from localStorage');
       DATABASE_URL = savedConnectionString;
+      return savedConnectionString;
     }
   } catch (error) {
     console.warn('Could not load connection string from localStorage', error);
   }
   
+  console.log('No MongoDB connection string found in environment variables or localStorage');
   return DATABASE_URL;
 };
 
@@ -52,7 +62,9 @@ export const getDatabaseConnectionString = (): string => {
  * @returns True if the connection string is set, false otherwise
  */
 export const isDatabaseConfigured = (): boolean => {
-  return !!getDatabaseConnectionString();
+  const connectionString = getDatabaseConnectionString();
+  console.log(`Database configured: ${!!connectionString}`);
+  return !!connectionString;
 };
 
 /**
@@ -60,17 +72,21 @@ export const isDatabaseConfigured = (): boolean => {
  * @returns True if the database has been installed, false otherwise
  */
 export const isDatabaseInstalled = (): boolean => {
-  // First check environment variable
-  if (process.env.MONGODB_INSTALLED === 'true') {
+  console.log('Checking if database is installed...');
+  
+  // First check environment variable (server-side)
+  if (typeof process !== 'undefined' && process.env && process.env.MONGODB_INSTALLED === 'true') {
+    console.log('Database is marked as installed via environment variable');
     return true;
   }
   
-  // Then check localStorage
+  // Then check localStorage (client-side)
   try {
     const installed = localStorage.getItem('mongodb_installed');
+    console.log(`Database installation status from localStorage: ${installed}`);
     return installed === 'true';
   } catch (error) {
-    console.warn('Could not check if database is installed', error);
+    console.warn('Could not check if database is installed from localStorage', error);
     return false;
   }
 };
@@ -80,6 +96,7 @@ export const isDatabaseInstalled = (): boolean => {
  * @param installed True if the database has been installed, false otherwise
  */
 export const setDatabaseInstalled = (installed: boolean): void => {
+  console.log(`Setting database installed status to: ${installed}`);
   try {
     localStorage.setItem('mongodb_installed', installed ? 'true' : 'false');
   } catch (error) {
@@ -92,6 +109,7 @@ export const setDatabaseInstalled = (installed: boolean): void => {
  * This validates the connection string format
  */
 export const initializeDatabase = async (): Promise<boolean> => {
+  console.log('Initializing database configuration...');
   const connectionString = getDatabaseConnectionString();
   
   if (!connectionString) {
