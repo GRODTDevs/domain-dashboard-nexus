@@ -118,7 +118,13 @@ export function UserDialog({ open, onClose, user, isNew }: UserDialogProps) {
     setIsSubmitting(true);
 
     if (isNew) {
-      createMutation.mutate(data);
+      // Ensure all required fields are provided for createUser
+      createMutation.mutate({
+        name: data.name,
+        email: data.email,
+        role: data.role,
+        active: data.active
+      });
     } else if (user) {
       updateMutation.mutate({
         id: user.id,

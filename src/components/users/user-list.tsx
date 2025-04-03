@@ -7,7 +7,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Pencil, Trash2, Plus } from "lucide-react";
+import { Pencil, Trash2, Plus, Users } from "lucide-react";
 import { User, fetchUsers, deleteUser } from "@/lib/api";
 import { ConfirmationDialog } from "@/components/confirmation-dialog";
 import { useToast } from "@/hooks/use-toast";
@@ -93,7 +93,7 @@ export function UserList() {
         </div>
         
         <EmptyState
-          icon="users"
+          icon={Users}
           title="No users found"
           description="Get started by adding a new user."
           action={

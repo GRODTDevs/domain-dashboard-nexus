@@ -10,6 +10,11 @@ interface EmptyStateProps {
   actionLabel?: string;
   actionIcon?: LucideIcon;
   onAction?: () => void;
+  secondaryAction?: {
+    label: string;
+    icon: LucideIcon;
+    onClick: () => void;
+  };
   className?: string;
 }
 
@@ -20,6 +25,7 @@ export function EmptyState({
   actionLabel,
   actionIcon: ActionIcon = PlusCircle,
   onAction,
+  secondaryAction,
   className,
 }: EmptyStateProps) {
   return (
@@ -29,16 +35,26 @@ export function EmptyState({
       </div>
       <h3 className="mt-4 text-lg font-medium">{title}</h3>
       <p className="mt-2 text-sm text-muted-foreground">{description}</p>
-      {actionLabel && onAction && (
-        <Button
-          variant="outline"
-          className="mt-4"
-          onClick={onAction}
-        >
-          <ActionIcon className="mr-2 h-4 w-4" />
-          {actionLabel}
-        </Button>
-      )}
+      <div className="mt-4 flex items-center gap-2">
+        {actionLabel && onAction && (
+          <Button
+            variant="outline"
+            onClick={onAction}
+          >
+            <ActionIcon className="mr-2 h-4 w-4" />
+            {actionLabel}
+          </Button>
+        )}
+        {secondaryAction && (
+          <Button
+            variant="ghost"
+            onClick={secondaryAction.onClick}
+          >
+            <secondaryAction.icon className="mr-2 h-4 w-4" />
+            {secondaryAction.label}
+          </Button>
+        )}
+      </div>
     </div>
   );
 }
