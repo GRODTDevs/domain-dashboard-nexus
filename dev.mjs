@@ -36,5 +36,5 @@ process.on('SIGINT', () => {
 
 console.log('✅ Development environment running');
 console.log('📱 Client: http://localhost:8080');
-console.log('🖥️ Server is running');
+console.log('🖥️ Server is running (will auto-find an available port)');
 console.log('Press Ctrl+C to stop');
