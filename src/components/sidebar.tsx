@@ -6,6 +6,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Globe, Home, PlusCircle, Search, Settings } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useState } from "react";
+import { UserMenu } from "./UserMenu";
 
 export function Sidebar() {
   const location = useLocation();
@@ -15,7 +16,7 @@ export function Sidebar() {
     {
       title: "Dashboard",
       icon: Home,
-      href: "/",
+      href: "/dashboard",
     },
     {
       title: "Domains",
@@ -91,6 +92,9 @@ export function Sidebar() {
       </ScrollArea>
       
       <Separator className="bg-sidebar-border" />
+      
+      {/* Always show UserMenu, but adapt to collapsed state */}
+      <UserMenu />
       
       <div className="p-4">
         {!collapsed && (
