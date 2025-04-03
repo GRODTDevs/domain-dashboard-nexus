@@ -38,83 +38,107 @@ let users: User[] = [
   }
 ];
 
-// Mock data (fallback for when DB is not connected)
-let domains: Domain[] = [
-  {
-    id: "1",
-    name: "example.com",
-    registrar: "GoDaddy",
-    registeredDate: "2022-01-15",
-    expiryDate: "2025-01-15",
-    status: "active",
-    autoRenew: true,
-    nameservers: ["ns1.godaddy.com", "ns2.godaddy.com"],
-    notes: [
-      {
-        id: "n1",
-        domainId: "1",
-        content: "Main company domain",
-        createdAt: "2022-01-15T08:30:00Z",
-        updatedAt: "2022-01-15T08:30:00Z",
-      }
-    ],
-    links: [
-      {
-        id: "l1",
-        domainId: "1",
-        url: "https://example.com",
-        title: "Company Website",
-        createdAt: "2022-01-15T08:35:00Z",
-      }
-    ],
-    files: [],
-    seoAnalyses: [
-      {
-        id: "seo1",
-        domainId: "1",
-        createdAt: "2023-03-15T10:30:00Z",
-        metaTagsScore: 85,
-        speedScore: 92,
-        mobileScore: 88,
-        accessibilityScore: 76,
-        seoScore: 82,
-        recommendations: [
-          "Add alt text to all images",
-          "Improve mobile page speed",
-          "Fix broken links"
-        ]
-      }
-    ]
-  },
-  {
-    id: "2",
-    name: "store-example.com",
-    registrar: "Namecheap",
-    registeredDate: "2022-02-10",
-    expiryDate: "2023-05-10",
-    status: "expired",
-    autoRenew: false,
-    nameservers: [],
-    notes: [],
-    links: [],
-    files: [],
-    seoAnalyses: []
-  },
-  {
-    id: "3",
-    name: "blog-example.com",
-    registrar: "Cloudflare",
-    registeredDate: "2023-01-01",
-    expiryDate: "2024-06-01",
-    status: "expiring-soon",
-    autoRenew: true,
-    nameservers: ["ns3.cloudflare.com", "ns4.cloudflare.com"],
-    notes: [],
-    links: [],
-    files: [],
-    seoAnalyses: []
+// Load domains from localStorage or use default mock data
+const loadDomainsFromStorage = (): Domain[] => {
+  try {
+    const storedDomains = localStorage.getItem('domains');
+    if (storedDomains) {
+      return JSON.parse(storedDomains);
+    }
+  } catch (error) {
+    console.error("Error loading domains from localStorage:", error);
   }
-];
+  
+  // Default mock data if nothing in localStorage
+  return [
+    {
+      id: "1",
+      name: "example.com",
+      registrar: "GoDaddy",
+      registeredDate: "2022-01-15",
+      expiryDate: "2025-01-15",
+      status: "active",
+      autoRenew: true,
+      nameservers: ["ns1.godaddy.com", "ns2.godaddy.com"],
+      notes: [
+        {
+          id: "n1",
+          domainId: "1",
+          content: "Main company domain",
+          createdAt: "2022-01-15T08:30:00Z",
+          updatedAt: "2022-01-15T08:30:00Z",
+        }
+      ],
+      links: [
+        {
+          id: "l1",
+          domainId: "1",
+          url: "https://example.com",
+          title: "Company Website",
+          createdAt: "2022-01-15T08:35:00Z",
+        }
+      ],
+      files: [],
+      seoAnalyses: [
+        {
+          id: "seo1",
+          domainId: "1",
+          createdAt: "2023-03-15T10:30:00Z",
+          metaTagsScore: 85,
+          speedScore: 92,
+          mobileScore: 88,
+          accessibilityScore: 76,
+          seoScore: 82,
+          recommendations: [
+            "Add alt text to all images",
+            "Improve mobile page speed",
+            "Fix broken links"
+          ]
+        }
+      ]
+    },
+    {
+      id: "2",
+      name: "store-example.com",
+      registrar: "Namecheap",
+      registeredDate: "2022-02-10",
+      expiryDate: "2023-05-10",
+      status: "expired",
+      autoRenew: false,
+      nameservers: [],
+      notes: [],
+      links: [],
+      files: [],
+      seoAnalyses: []
+    },
+    {
+      id: "3",
+      name: "blog-example.com",
+      registrar: "Cloudflare",
+      registeredDate: "2023-01-01",
+      expiryDate: "2024-06-01",
+      status: "expiring-soon",
+      autoRenew: true,
+      nameservers: ["ns3.cloudflare.com", "ns4.cloudflare.com"],
+      notes: [],
+      links: [],
+      files: [],
+      seoAnalyses: []
+    }
+  ];
+};
+
+// Save domains to localStorage
+const saveDomainsToStorage = (domains: Domain[]): void => {
+  try {
+    localStorage.setItem('domains', JSON.stringify(domains));
+  } catch (error) {
+    console.error("Error saving domains to localStorage:", error);
+  }
+};
+
+// Initialize domains from localStorage
+let domains: Domain[] = loadDomainsFromStorage();
 
 // Calculate domain status based on expiry date
 const calculateDomainStatus = (expiryDate: string): DomainStatus => {
@@ -143,15 +167,21 @@ export const fetchDomains = async (): Promise<Domain[]> => {
       
       const domainsCollection = db.collection("domains");
       const result = await domainsCollection.find({}).toArray();
+      
+      // If we got domains from MongoDB (simulated), update localStorage
+      if (result && result.length > 0) {
+        domains = result as Domain[];
+        saveDomainsToStorage(domains);
+      }
       return result as Domain[];
     } catch (error) {
       console.error("Error fetching domains from MongoDB:", error);
-      // Fall back to in-memory domains if MongoDB fails
+      // Fall back to localStorage domains if MongoDB fails
       return domains;
     }
   }
   
-  // Use in-memory data when MongoDB is not connected
+  // Use localStorage data when MongoDB is not connected
   return domains;
 };
 
@@ -200,8 +230,9 @@ export const createDomain = async (domain: Omit<Domain, 'id' | 'notes' | 'links'
     }
   }
   
-  // Always update the in-memory array as a fallback
+  // Always update the in-memory array and localStorage as a fallback
   domains = [...domains, newDomain];
+  saveDomainsToStorage(domains);
   return newDomain;
 };
 
@@ -243,6 +274,9 @@ export const updateDomain = async (id: string, updates: Partial<Omit<Domain, 'id
     ...domains.slice(index + 1)
   ];
   
+  // Save updated domains to localStorage
+  saveDomainsToStorage(domains);
+  
   return updatedDomain;
 };
 
@@ -268,6 +302,11 @@ export const deleteDomain = async (id: string): Promise<boolean> => {
     }
   }
   
+  // Save updated domains to localStorage after deletion
+  if (domains.length < initialLength) {
+    saveDomainsToStorage(domains);
+  }
+  
   // Return true if a domain was actually deleted
   return domains.length < initialLength;
 };
@@ -288,6 +327,10 @@ export const addDomainNote = async (domainId: string, content: string): Promise<
   };
   
   domains[domainIndex].notes = [...domains[domainIndex].notes, newNote];
+  
+  // Save updated domains to localStorage
+  saveDomainsToStorage(domains);
+  
   return newNote;
 };
 
@@ -299,6 +342,12 @@ export const deleteDomainNote = async (domainId: string, noteId: string): Promis
   
   const initialLength = domains[domainIndex].notes.length;
   domains[domainIndex].notes = domains[domainIndex].notes.filter(note => note.id !== noteId);
+  
+  // Save updated domains to localStorage if a note was deleted
+  if (domains[domainIndex].notes.length !== initialLength) {
+    saveDomainsToStorage(domains);
+  }
+  
   return domains[domainIndex].notes.length !== initialLength;
 };
 
@@ -318,6 +367,10 @@ export const addDomainLink = async (domainId: string, url: string, title: string
   };
   
   domains[domainIndex].links = [...domains[domainIndex].links, newLink];
+  
+  // Save updated domains to localStorage
+  saveDomainsToStorage(domains);
+  
   return newLink;
 };
 
@@ -329,6 +382,12 @@ export const deleteDomainLink = async (domainId: string, linkId: string): Promis
   
   const initialLength = domains[domainIndex].links.length;
   domains[domainIndex].links = domains[domainIndex].links.filter(link => link.id !== linkId);
+  
+  // Save updated domains to localStorage if a link was deleted
+  if (domains[domainIndex].links.length !== initialLength) {
+    saveDomainsToStorage(domains);
+  }
+  
   return domains[domainIndex].links.length !== initialLength;
 };
 
@@ -350,6 +409,10 @@ export const addDomainFile = async (domainId: string, fileName: string, fileSize
   };
   
   domains[domainIndex].files = [...domains[domainIndex].files, newFile];
+  
+  // Save updated domains to localStorage
+  saveDomainsToStorage(domains);
+  
   return newFile;
 };
 
@@ -361,6 +424,12 @@ export const deleteDomainFile = async (domainId: string, fileId: string): Promis
   
   const initialLength = domains[domainIndex].files.length;
   domains[domainIndex].files = domains[domainIndex].files.filter(file => file.id !== fileId);
+  
+  // Save updated domains to localStorage if a file was deleted
+  if (domains[domainIndex].files.length !== initialLength) {
+    saveDomainsToStorage(domains);
+  }
+  
   return domains[domainIndex].files.length !== initialLength;
 };
 
@@ -450,6 +519,10 @@ export const runSEOAnalysis = async (domainId: string): Promise<SEOAnalysis | un
   };
   
   domains[domainIndex].seoAnalyses = [...domains[domainIndex].seoAnalyses, newAnalysis];
+  
+  // Save updated domains to localStorage
+  saveDomainsToStorage(domains);
+  
   return newAnalysis;
 };
 
