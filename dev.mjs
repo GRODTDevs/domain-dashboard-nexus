@@ -23,8 +23,8 @@ console.log('🚀 Starting development environment...');
 // Start the Vite dev server for the client
 const clientProcess = runCommand('npx', ['--no-install', 'vite', '--port', '8080']);
 
-// Start the backend server with a specific Node.js version if available
-const serverProcess = runCommand('node', ['--no-warnings', 'server.mjs']);
+// Start the backend server with older Node.js compatibility
+const serverProcess = runCommand('node', ['server.mjs']);
 
 // Handle process termination
 process.on('SIGINT', () => {
