@@ -20,6 +20,12 @@ app.use(cors({
 app.use(express.json());
 console.log('Server: Middleware configured');
 
+// Increase request timeout
+app.use((req, res, next) => {
+  res.setTimeout(60000); // 60 seconds timeout
+  next();
+});
+
 // Serve static files from the dist directory after build
 app.use(express.static(getStaticPath()));
 console.log(`Server: Static files configured from ${getStaticPath()}`);
@@ -46,6 +52,9 @@ function startServer(port) {
       console.error('Server: Error:', err);
     }
   });
+
+  // Set longer timeout to avoid premature disconnections
+  server.timeout = 120000; // 2 minutes
 
   return server;
 }

@@ -38,13 +38,23 @@ export function useDatabaseConnection() {
       console.log("Dialog: Testing connection via API");
       
       try {
-        const response = await fetch('/api/db/status' + 
+        const apiUrl = '/api/db/status' + 
           (connectionString && !connectionString.includes('(Using') ? 
-            `?uri=${encodeURIComponent(connectionString)}` : ''));
+            `?uri=${encodeURIComponent(connectionString)}` : '');
+        
+        console.log(`Dialog: Making API request to ${apiUrl}`);
+        
+        const response = await fetch(apiUrl, {
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          },
+          timeout: 30000 // 30 second timeout
+        });
         
         if (!response.ok) {
           const data = await response.json();
-          throw new Error(data.message || "Failed to connect to MongoDB");
+          throw new Error(data.message || `Failed to connect to MongoDB. Server returned status ${response.status}`);
         }
         
         const data = await response.json();
@@ -59,7 +69,8 @@ export function useDatabaseConnection() {
           const initResponse = await fetch('/api/db/init', {
             method: 'POST',
             headers: {
-              'Content-Type': 'application/json'
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
             },
             body: JSON.stringify({
               uri: connectionString && !connectionString.includes('(Using') ? 

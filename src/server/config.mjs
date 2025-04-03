@@ -42,6 +42,6 @@ if (process.env.MONGODB_URI) {
 }
 
 // Server configuration
-export const DEFAULT_PORT = 3000;
+export const DEFAULT_PORT = 3001; // Changed from 3000 to 3001 to match vite proxy config
 export const PORT = process.env.PORT || DEFAULT_PORT;
 export const getStaticPath = () => path.join(projectRoot, 'dist');
