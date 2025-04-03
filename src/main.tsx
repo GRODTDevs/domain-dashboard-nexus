@@ -22,9 +22,13 @@ const initApp = async () => {
     }
     
     // Initialize MongoDB connection
-    await initializeStorage();
+    const initialized = await initializeStorage();
     
-    // Render the app
+    if (!initialized) {
+      console.warn("MongoDB initialization was not successful - continuing anyway");
+    }
+    
+    // Render the app regardless of database initialization success
     createRoot(rootElement).render(
       <React.StrictMode>
         <App />
