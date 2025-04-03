@@ -24,8 +24,8 @@ console.log('🚀 Starting development environment...');
 // Using npx with the --no-install flag to avoid using top-level await
 const clientProcess = runCommand('npx', ['--no-install', 'vite', '--port', '8080']);
 
-// Start the backend server - using Node.js to run the CommonJS file directly
-const serverProcess = runCommand('node', ['server-commonjs.js']);
+// Start the backend server - using Node.js to run the ES Module file
+const serverProcess = runCommand('node', ['server.mjs']);
 
 // Handle process termination
 process.on('SIGINT', () => {
