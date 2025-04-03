@@ -1,47 +1,65 @@
 
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { useForm } from "react-hook-form";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { EyeIcon, EyeOffIcon, LockIcon, UserIcon } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
+import { Checkbox } from "@/components/ui/checkbox";
 
-type FormValues = {
-  email: string;
-  password: string;
-};
-
-export default function LoginPage() {
-  const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const { login } = useAuth();
+const LoginPage = () => {
+  const { login, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
-  const { register, handleSubmit, formState: { errors } } = useForm<FormValues>();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
+  const [logoImage, setLogoImage] = useState<string | null>(null);
 
-  const onSubmit = async (data: FormValues) => {
+  const from = location.state?.from?.pathname || "/dashboard";
+
+  useEffect(() => {
+    // Redirect if already authenticated
+    if (isAuthenticated) {
+      navigate(from, { replace: true });
+    }
+    
+    // Load appearance settings from localStorage
+    const savedBackgroundImage = localStorage.getItem("backgroundImage");
+    const savedLogoImage = localStorage.getItem("logoImage");
+    
+    if (savedBackgroundImage) {
+      setBackgroundImage(savedBackgroundImage);
+    }
+    
+    if (savedLogoImage) {
+      setLogoImage(savedLogoImage);
+    }
+  }, [isAuthenticated, navigate, from]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     setIsLoading(true);
+
     try {
-      const success = await login(data.email, data.password);
-      if (success) {
-        toast({
-          title: "Login successful",
-          description: "Welcome back!",
-        });
-        navigate("/dashboard");
-      } else {
-        toast({
-          title: "Login failed",
-          description: "Invalid email or password",
-          variant: "destructive",
-        });
-      }
+      await login({ email, password });
+      navigate(from, { replace: true });
     } catch (error) {
       toast({
-        title: "Error",
-        description: "An unexpected error occurred",
+        title: "Authentication failed",
+        description: "Invalid email or password. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -50,105 +68,88 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen w-full">
-      {/* Background with overlay */}
-      <div className="fixed inset-0 bg-[url('/placeholder.svg')] bg-cover bg-center">
-        <div className="absolute inset-0 bg-background/70 backdrop-blur-sm" />
-      </div>
-
-      {/* Content */}
-      <div className="relative flex w-full items-center justify-center">
-        <div className="w-full max-w-md space-y-8 rounded-lg border border-border/50 bg-card/50 p-6 backdrop-blur-md shadow-xl animate-fade-in">
-          <div className="text-center">
-            {/* Company logo placeholder - replace with your actual logo */}
-            <div className="mx-auto h-20 w-20 rounded-full bg-primary/10 flex items-center justify-center">
-              {/* Replace with your company logo */}
-              <svg className="h-10 w-10 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 2L2 7l10 5 10-5-10-5z" />
-                <path d="M2 17l10 5 10-5" />
-                <path d="M2 12l10 5 10-5" />
-              </svg>
-            </div>
-            <h2 className="mt-6 text-2xl font-bold text-foreground">
-              Domain Dashboard
-            </h2>
-            <p className="mt-2 text-muted-foreground">
-              Sign in to manage your company domains
-            </p>
+    <div 
+      className="min-h-screen flex items-center justify-center p-4 bg-cover bg-center"
+      style={{
+        backgroundImage: backgroundImage ? `url(${backgroundImage})` : 'none',
+        backgroundColor: backgroundImage ? undefined : 'var(--background)'
+      }}
+    >
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm"></div>
+      
+      <Card className="w-full max-w-md relative z-10 bg-background/80 backdrop-blur-md border-background/10">
+        {logoImage && (
+          <div className="flex justify-center mt-6">
+            <img
+              src={logoImage}
+              alt="Company Logo"
+              className="h-16 max-w-[200px] object-contain"
+            />
           </div>
-
-          <form className="mt-8 space-y-6" onSubmit={handleSubmit(onSubmit)}>
-            <div className="space-y-4">
-              <div className="space-y-1">
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                    <UserIcon className="h-5 w-5 text-muted-foreground" />
-                  </div>
-                  <Input 
-                    id="email"
-                    type="email"
-                    placeholder="Email address"
-                    className="pl-10"
-                    {...register("email", { 
-                      required: "Email is required", 
-                      pattern: {
-                        value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                        message: "Invalid email address"
-                      }
-                    })}
-                  />
-                </div>
-                {errors.email && (
-                  <p className="text-sm text-destructive">{errors.email.message}</p>
-                )}
+        )}
+        
+        <CardHeader>
+          <CardTitle className="text-2xl text-center">Sign In</CardTitle>
+          <CardDescription className="text-center">
+            Enter your credentials to access your account
+          </CardDescription>
+        </CardHeader>
+        <form onSubmit={handleSubmit}>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                placeholder="name@example.com"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password">Password</Label>
+                <Button variant="link" className="p-0 h-auto text-xs" type="button">
+                  Forgot password?
+                </Button>
               </div>
-
-              <div className="space-y-1">
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                    <LockIcon className="h-5 w-5 text-muted-foreground" />
-                  </div>
-                  <Input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    placeholder="Password"
-                    className="pl-10 pr-10"
-                    {...register("password", { required: "Password is required" })}
-                  />
-                  <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="text-muted-foreground hover:text-foreground"
-                    >
-                      {showPassword ? (
-                        <EyeOffIcon className="h-5 w-5" />
-                      ) : (
-                        <EyeIcon className="h-5 w-5" />
-                      )}
-                    </button>
-                  </div>
-                </div>
-                {errors.password && (
-                  <p className="text-sm text-destructive">{errors.password.message}</p>
-                )}
-              </div>
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
             </div>
-
-            <div>
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? "Signing in..." : "Sign in"}
-              </Button>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="remember-me"
+                checked={rememberMe}
+                onCheckedChange={(checked) => setRememberMe(Boolean(checked))}
+              />
+              <Label
+                htmlFor="remember-me"
+                className="text-sm font-normal cursor-pointer"
+              >
+                Remember me
+              </Label>
             </div>
-
-            <div className="text-center text-sm text-muted-foreground">
-              <p>Demo credentials:</p>
-              <p>Email: admin@example.com</p>
-              <p>Password: admin123</p>
-            </div>
-          </form>
+          </CardContent>
+          <CardFooter>
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? "Signing in..." : "Sign In"}
+            </Button>
+          </CardFooter>
+        </form>
+        <div className="px-8 pb-6 text-center">
+          <div className="text-xs text-muted-foreground mt-4">
+            Demo account: <span className="font-mono">admin@example.com</span> / <span className="font-mono">password</span>
+          </div>
         </div>
-      </div>
+      </Card>
     </div>
   );
-}
+};
+
+export default LoginPage;
