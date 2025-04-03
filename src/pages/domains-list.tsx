@@ -1,4 +1,3 @@
-
 import { Layout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { PlusCircle, Search, Database } from "lucide-react";
@@ -28,10 +27,14 @@ export default function DomainsListPage() {
       initializeDb(savedConnection).then(connected => {
         if (connected) {
           console.log("Reconnected to MongoDB using saved connection string");
+          toast({
+            title: "Database Connected",
+            description: "Successfully reconnected to MongoDB database (simulated)",
+          });
         }
       });
     }
-  }, []);
+  }, [toast]);
 
   const loadDomains = async () => {
     setIsLoading(true);
@@ -80,7 +83,7 @@ export default function DomainsListPage() {
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => setDbDialogOpen(true)}>
             <Database className="mr-2 h-4 w-4" />
-            {isDbConnected() ? "Database Connected" : "Connect Database"}
+            {isDbConnected() ? "Database Connected (Simulated)" : "Connect Database"}
           </Button>
           <Button asChild>
             <Link to="/domains/new">

@@ -30,11 +30,14 @@ export function DatabaseConnectionDialog({ isOpen, onOpenChange }: DatabaseConne
 
     setIsConnecting(true);
     try {
+      // Add a small delay to simulate connection attempt
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
       const connected = await initializeDb(connectionString);
       if (connected) {
         toast({
           title: "Connected",
-          description: "Successfully connected to MongoDB database",
+          description: "Successfully connected to MongoDB database (simulated in browser)",
         });
         // Store the connection string in localStorage for persistence across page reloads
         localStorage.setItem("mongodb_connection_string", connectionString);
@@ -64,7 +67,7 @@ export function DatabaseConnectionDialog({ isOpen, onOpenChange }: DatabaseConne
         <DialogHeader>
           <DialogTitle>Connect to MongoDB</DialogTitle>
           <DialogDescription>
-            Enter your MongoDB connection string to enable persistent data storage
+            Enter your MongoDB connection string to simulate database connectivity
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
@@ -76,6 +79,9 @@ export function DatabaseConnectionDialog({ isOpen, onOpenChange }: DatabaseConne
               value={connectionString}
               onChange={(e) => setConnectionString(e.target.value)}
             />
+            <p className="text-xs text-muted-foreground">
+              Note: This is a browser environment simulation. In production, you would need a backend service to connect to MongoDB.
+            </p>
           </div>
         </div>
         <DialogFooter>
@@ -84,7 +90,7 @@ export function DatabaseConnectionDialog({ isOpen, onOpenChange }: DatabaseConne
           </Button>
           <Button type="button" disabled={isConnecting} onClick={handleConnect}>
             {isConnecting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Connect
+            Simulate Connection
           </Button>
         </DialogFooter>
       </DialogContent>

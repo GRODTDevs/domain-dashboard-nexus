@@ -1,48 +1,83 @@
 
-import { MongoClient } from "mongodb";
+// Managing MongoDB connection state
+let connectionStatus = {
+  connected: false,
+  connectionString: "",
+  error: null as string | null
+};
 
-// Will be set from environment or passed in by user
-let connectionString = "";
-
-let client: MongoClient | null = null;
-
+// This is a mock version that works in the browser
 export const initializeDb = async (mongoUri: string) => {
-  // Store the connection string for future use
-  connectionString = mongoUri;
-  
   try {
-    client = new MongoClient(mongoUri);
-    await client.connect();
-    console.log("Connected to MongoDB");
+    // Simulate a connection attempt
+    console.log("Attempting to connect to MongoDB with URI:", mongoUri);
+    
+    // In a real application, we would make an API call to a backend service
+    // that would handle the actual MongoDB connection
+    
+    // Store connection information for future reference
+    connectionStatus.connectionString = mongoUri;
+    connectionStatus.connected = true;
+    connectionStatus.error = null;
+    
+    console.log("Mock MongoDB connection established");
     return true;
   } catch (error) {
     console.error("Failed to connect to MongoDB:", error);
+    connectionStatus.error = error instanceof Error ? error.message : "Unknown error";
+    connectionStatus.connected = false;
     return false;
   }
 };
 
 export const getDb = () => {
-  if (!client) {
-    // If no client exists but we have a connection string, try to connect
-    if (connectionString) {
-      console.warn("DB client not initialized, attempting to connect...");
-      return new MongoClient(connectionString).db("domain-manager");
-    }
-    console.error("MongoDB client not initialized!");
+  if (!connectionStatus.connected) {
+    console.warn("MongoDB client not initialized or connected");
     return null;
   }
-  return client.db("domain-manager");
+  
+  // This is a mock implementation that would normally return the database instance
+  // In a real application, this would return the database connection
+  return {
+    collection: (collectionName: string) => ({
+      find: () => ({ 
+        toArray: async () => {
+          console.log(`Mock find operation on ${collectionName}`);
+          return []; 
+        }
+      }),
+      findOne: async () => {
+        console.log(`Mock findOne operation on ${collectionName}`);
+        return null;
+      },
+      insertOne: async (doc: any) => {
+        console.log(`Mock insertOne operation on ${collectionName}`, doc);
+        return { insertedId: "mock-id" };
+      },
+      updateOne: async (filter: any, update: any) => {
+        console.log(`Mock updateOne operation on ${collectionName}`, { filter, update });
+        return { matchedCount: 1, modifiedCount: 1 };
+      },
+      deleteOne: async (filter: any) => {
+        console.log(`Mock deleteOne operation on ${collectionName}`, filter);
+        return { deletedCount: 1 };
+      }
+    })
+  };
 };
 
 export const isDbConnected = () => {
-  return !!client;
+  return connectionStatus.connected;
 };
 
-// Used for cleanup on application shutdown (not typically needed in browser)
+export const getConnectionError = () => {
+  return connectionStatus.error;
+};
+
 export const closeDb = async () => {
-  if (client) {
-    await client.close();
-    client = null;
-    console.log("MongoDB connection closed");
-  }
+  // In a real application, this would close the MongoDB connection
+  connectionStatus.connected = false;
+  connectionStatus.connectionString = "";
+  connectionStatus.error = null;
+  console.log("Mock MongoDB connection closed");
 };
