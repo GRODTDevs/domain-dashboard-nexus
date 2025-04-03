@@ -30,4 +30,6 @@ export default defineConfig(({ mode }) => ({
       },
     },
   },
+  // Make sure to load .env.local file
+  envDir: '.',
 }));
