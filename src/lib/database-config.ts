@@ -10,8 +10,6 @@ let DATABASE_URL = '';
  */
 export const setDatabaseConnectionString = (connectionString: string) => {
   DATABASE_URL = connectionString;
-  // Store in localStorage for persistence (only for development/demo purposes)
-  localStorage.setItem('database_connection_string', connectionString);
   console.log('Database connection string has been set');
   return true;
 };
@@ -27,10 +25,6 @@ export const getDatabaseConnectionString = (): string => {
     return import.meta.env.VITE_MONGODB_URI;
   }
   
-  // If the connection string isn't set in memory, try to load from localStorage
-  if (!DATABASE_URL) {
-    DATABASE_URL = localStorage.getItem('database_connection_string') || '';
-  }
   return DATABASE_URL;
 };
 
@@ -44,7 +38,7 @@ export const isDatabaseConfigured = (): boolean => {
 
 /**
  * Initialize the database connection
- * In the browser, this simply validates the connection string format
+ * This validates the connection string format
  */
 export const initializeDatabase = async (): Promise<boolean> => {
   const connectionString = getDatabaseConnectionString();

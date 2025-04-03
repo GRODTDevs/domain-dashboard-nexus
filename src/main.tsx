@@ -12,13 +12,15 @@ if (!rootElement) throw new Error("Failed to find the root element");
 // Initialize storage and render app
 const initApp = async () => {
   try {
-    // Check if we have a stored connection string or environment variable
+    // Check if we have a MongoDB connection string
     const connectionString = getDatabaseConnectionString();
-    if (connectionString) {
-      console.log("Found MongoDB connection string, will use localStorage with simulation");
+    if (!connectionString) {
+      console.warn("No MongoDB connection string found. Please set the VITE_MONGODB_URI environment variable.");
+    } else {
+      console.log("Found MongoDB connection string");
     }
     
-    // Initialize storage (always using localStorage in browser)
+    // Initialize MongoDB connection
     await initializeStorage();
     
     // Render the app
@@ -30,7 +32,7 @@ const initApp = async () => {
     rootElement.innerHTML = `
       <div style="padding: 20px; text-align: center; font-family: sans-serif;">
         <h2>Application Error</h2>
-        <p>Sorry, the application failed to load. Please try refreshing the page.</p>
+        <p>Sorry, the application failed to load. Please ensure your MongoDB connection is properly configured.</p>
         <pre style="background: #f5f5f5; padding: 10px; border-radius: 4px; text-align: left; margin-top: 20px;">${error instanceof Error ? error.message : 'Unknown error'}</pre>
       </div>
     `;

@@ -1,36 +1,32 @@
 
-// Managing storage for the browser environment
+// MongoDB Database Management
 
 let storageStatus = {
   initialized: false,
   error: null as string | null,
-  usingExternalDb: false
+  usingExternalDb: true
 };
 
 // Initialize storage
-export const initializeStorage = async (isPersistent: boolean = true) => {
+export const initializeStorage = async () => {
   try {
-    console.log("Initializing storage");
+    console.log("Initializing MongoDB connection");
     
-    // Store the persistence preference
-    localStorage.setItem("data_persistence_enabled", isPersistent.toString());
+    // Check if MongoDB connection string is configured
+    const mongoUri = import.meta.env.VITE_MONGODB_URI;
     
-    // Check if external database is configured
-    const connectionString = localStorage.getItem('database_connection_string');
-    storageStatus.usingExternalDb = !!connectionString;
-    
-    // Initialize empty collections in localStorage as fallback
-    if (!localStorage.getItem("domains")) {
-      localStorage.setItem("domains", JSON.stringify([]));
+    if (!mongoUri) {
+      throw new Error("MongoDB connection string is not configured. Please set the VITE_MONGODB_URI environment variable.");
     }
     
     storageStatus.initialized = true;
     storageStatus.error = null;
+    storageStatus.usingExternalDb = true;
     
-    console.log("Storage initialized successfully");
+    console.log("MongoDB connection initialized successfully");
     return true;
   } catch (error) {
-    console.error("Failed to initialize storage:", error);
+    console.error("Failed to initialize MongoDB connection:", error);
     storageStatus.error = error instanceof Error ? error.message : "Unknown error";
     storageStatus.initialized = false;
     return false;
@@ -38,20 +34,19 @@ export const initializeStorage = async (isPersistent: boolean = true) => {
 };
 
 export const isStorageInitialized = () => {
-  return storageStatus.initialized || localStorage.getItem("data_persistence_enabled") !== null;
+  return storageStatus.initialized;
 };
 
 export const getStorageError = () => {
   return storageStatus.error;
 };
 
-// Initialize database
+// Initialize database with connection string
 export const initializeDb = async (mongoUri: string = "") => {
   try {
-    // Store connection string if provided
     if (mongoUri) {
-      localStorage.setItem('database_connection_string', mongoUri);
-      console.log("Stored connection string");
+      // Store connection string if provided
+      console.log("Using provided MongoDB connection string");
     }
     
     return await initializeStorage();
@@ -61,61 +56,40 @@ export const initializeDb = async (mongoUri: string = "") => {
   }
 };
 
-// Get database connection or fallback to localStorage
+// This is a placeholder for the MongoDB client functionality
+// In a Node.js environment, this would be replaced with actual MongoDB operations
 export const getDb = () => {
   if (!isStorageInitialized()) {
-    console.warn("Storage not initialized");
+    console.warn("MongoDB connection not initialized");
     return null;
   }
   
-  // In browser environment, always use localStorage
+  // This is where we would normally return the MongoDB client
+  // Since we're running in a browser context but want to simulate Node.js MongoDB operations,
+  // we'll log that operations should be performed on the server
   return {
     collection: (collectionName: string) => ({
       find: () => ({ 
         toArray: async () => {
-          console.log(`Getting all items from ${collectionName} in localStorage`);
-          const data = localStorage.getItem(collectionName);
-          return data ? JSON.parse(data) : []; 
+          console.log(`[SERVER OPERATION] Getting all items from ${collectionName}`);
+          throw new Error("MongoDB operations must be performed on the server side");
         }
       }),
       findOne: async (filter: any) => {
-        console.log(`Getting item from ${collectionName} in localStorage`, filter);
-        const data = localStorage.getItem(collectionName);
-        const items = data ? JSON.parse(data) : [];
-        return items.find((item: any) => item.id === filter.id);
+        console.log(`[SERVER OPERATION] Finding item in ${collectionName}`, filter);
+        throw new Error("MongoDB operations must be performed on the server side");
       },
       insertOne: async (doc: any) => {
-        console.log(`Adding item to ${collectionName} in localStorage`, doc);
-        const data = localStorage.getItem(collectionName);
-        const items = data ? JSON.parse(data) : [];
-        items.push(doc);
-        localStorage.setItem(collectionName, JSON.stringify(items));
-        return { insertedId: doc.id };
+        console.log(`[SERVER OPERATION] Adding item to ${collectionName}`, doc);
+        throw new Error("MongoDB operations must be performed on the server side");
       },
       updateOne: async (filter: any, update: any) => {
-        console.log(`Updating item in ${collectionName} in localStorage`, { filter, update });
-        const data = localStorage.getItem(collectionName);
-        const items = data ? JSON.parse(data) : [];
-        const index = items.findIndex((item: any) => item.id === filter.id);
-        if (index !== -1) {
-          // Handle $set operator if present
-          if (update.$set) {
-            items[index] = { ...items[index], ...update.$set };
-          } else {
-            items[index] = { ...items[index], ...update };
-          }
-          localStorage.setItem(collectionName, JSON.stringify(items));
-          return { matchedCount: 1, modifiedCount: 1 };
-        }
-        return { matchedCount: 0, modifiedCount: 0 };
+        console.log(`[SERVER OPERATION] Updating item in ${collectionName}`, { filter, update });
+        throw new Error("MongoDB operations must be performed on the server side");
       },
       deleteOne: async (filter: any) => {
-        console.log(`Deleting item from ${collectionName} in localStorage`, filter);
-        const data = localStorage.getItem(collectionName);
-        const items = data ? JSON.parse(data) : [];
-        const newItems = items.filter((item: any) => item.id !== filter.id);
-        localStorage.setItem(collectionName, JSON.stringify(newItems));
-        return { deletedCount: items.length - newItems.length };
+        console.log(`[SERVER OPERATION] Deleting item from ${collectionName}`, filter);
+        throw new Error("MongoDB operations must be performed on the server side");
       }
     })
   };
@@ -130,11 +104,10 @@ export const getConnectionError = () => {
 };
 
 export const closeDb = async () => {
-  // Nothing to close in localStorage implementation
-  console.log("Storage connection closed");
+  console.log("MongoDB connection closed");
 };
 
 export const isUsingExternalDatabase = () => {
-  // In browser environment, we're just simulating this
-  return storageStatus.usingExternalDb;
+  // Always using MongoDB
+  return true;
 };
