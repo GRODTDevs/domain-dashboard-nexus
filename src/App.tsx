@@ -15,6 +15,7 @@ import DomainDetailPage from "./pages/domain-detail";
 import DomainNewPage from "./pages/domain-new";
 import DomainEditPage from "./pages/domain-edit";
 import SettingsPage from "./pages/settings";
+import UsersPage from "./pages/users"; // Add the new import
 
 const App = () => {
   // Move QueryClient creation inside the component
@@ -61,6 +62,12 @@ const App = () => {
               <Route path="/settings" element={
                 <ProtectedRoute>
                   <SettingsPage />
+                </ProtectedRoute>
+              } />
+              {/* Add new Users route */}
+              <Route path="/users" element={
+                <ProtectedRoute>
+                  <UsersPage />
                 </ProtectedRoute>
               } />
               <Route path="*" element={<NotFound />} />

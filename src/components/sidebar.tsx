@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Globe, Home, PlusCircle, Search, Settings } from "lucide-react";
+import { Globe, Home, PlusCircle, Search, Settings, Users } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useState } from "react";
 import { UserMenu } from "./UserMenu";
@@ -22,6 +22,11 @@ export function Sidebar() {
       title: "Domains",
       icon: Globe,
       href: "/domains",
+    },
+    {
+      title: "Users",
+      icon: Users,
+      href: "/users",
     },
     {
       title: "Settings",
@@ -107,7 +112,7 @@ export function Sidebar() {
       <div className="p-4">
         {!collapsed && (
           <div className="text-xs text-sidebar-foreground/60">
-            Domain Dashboard v1.0
+            Full Stack Hub v1.0
           </div>
         )}
       </div>

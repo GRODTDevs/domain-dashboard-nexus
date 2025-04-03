@@ -1,6 +1,40 @@
-
 import { Domain, DomainFile, DomainLink, DomainNote, DomainStatus } from "@/types/domain";
 import { v4 as uuidv4 } from 'uuid';
+
+// User types
+export type UserRole = "admin" | "user" | "editor" | "viewer";
+
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+  active: boolean;
+  createdAt: string;
+  lastLogin?: string;
+}
+
+// Mock user data
+let users: User[] = [
+  {
+    id: "1",
+    name: "Admin User",
+    email: "admin@example.com",
+    role: "admin",
+    active: true,
+    createdAt: "2023-01-01T00:00:00Z",
+    lastLogin: "2023-04-02T10:30:00Z"
+  },
+  {
+    id: "2",
+    name: "Regular User",
+    email: "user@example.com",
+    role: "user",
+    active: true,
+    createdAt: "2023-02-15T00:00:00Z",
+    lastLogin: "2023-04-01T14:22:00Z"
+  }
+];
 
 // Mock data
 let domains: Domain[] = [
@@ -226,4 +260,61 @@ export const deleteDomainFile = async (domainId: string, fileId: string): Promis
   const initialLength = domains[domainIndex].files.length;
   domains[domainIndex].files = domains[domainIndex].files.filter(file => file.id !== fileId);
   return domains[domainIndex].files.length !== initialLength;
+};
+
+// User API functions
+export const fetchUsers = async (): Promise<User[]> => {
+  // Simulate API call
+  await new Promise(resolve => setTimeout(resolve, 500));
+  return users;
+};
+
+export const fetchUser = async (id: string): Promise<User | undefined> => {
+  // Simulate API call
+  await new Promise(resolve => setTimeout(resolve, 300));
+  return users.find(user => user.id === id);
+};
+
+export const createUser = async (userData: Omit<User, 'id' | 'createdAt'>): Promise<User> => {
+  // Simulate API call
+  await new Promise(resolve => setTimeout(resolve, 500));
+  
+  const newUser: User = {
+    ...userData,
+    id: uuidv4(),
+    createdAt: new Date().toISOString()
+  };
+  
+  users = [...users, newUser];
+  return newUser;
+};
+
+export const updateUser = async (id: string, updates: Partial<Omit<User, 'id' | 'createdAt'>>): Promise<User | undefined> => {
+  // Simulate API call
+  await new Promise(resolve => setTimeout(resolve, 500));
+  
+  const index = users.findIndex(u => u.id === id);
+  if (index === -1) return undefined;
+  
+  const updatedUser: User = {
+    ...users[index],
+    ...updates
+  };
+  
+  users = [
+    ...users.slice(0, index),
+    updatedUser,
+    ...users.slice(index + 1)
+  ];
+  
+  return updatedUser;
+};
+
+export const deleteUser = async (id: string): Promise<boolean> => {
+  // Simulate API call
+  await new Promise(resolve => setTimeout(resolve, 500));
+  
+  const initialLength = users.length;
+  users = users.filter(user => user.id !== id);
+  return users.length !== initialLength;
 };
