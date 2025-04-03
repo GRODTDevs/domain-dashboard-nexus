@@ -31,11 +31,10 @@ async function startDev() {
   // Build the app if needed
   if (shouldBuild) {
     console.log('Building the application first...');
-    // Use a compatible way to run vite build without unsupported flags
-    const buildProcess = runCommand('node', [
-      './node_modules/vite/bin/vite.js',
-      'build'
-    ]);
+    
+    // Use Vite directly rather than its CLI script
+    // This is more compatible with older Node.js versions
+    const buildProcess = runCommand('npx', ['vite', 'build']);
     
     // Wait for build to complete
     await new Promise((resolve) => {
@@ -54,10 +53,11 @@ async function startDev() {
   // Start the backend server with older Node.js compatibility
   const serverProcess = runCommand('node', ['server.mjs']);
 
-  // Use a more compatible approach to start Vite in dev mode
-  const clientProcess = runCommand('node', [
-    './node_modules/vite/bin/vite.js',
-    '--port',
+  // Use npx to start Vite in dev mode
+  // This is more compatible with older Node.js versions
+  const clientProcess = runCommand('npx', [
+    'vite', 
+    '--port', 
     '8080',
     '--host'
   ]);
