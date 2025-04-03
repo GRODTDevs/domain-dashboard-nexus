@@ -5,35 +5,24 @@ import { useAuth } from "@/contexts/AuthContext";
 
 const Index = () => {
   const navigate = useNavigate();
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated } = useAuth();
   const [searchParams] = useSearchParams();
   const customizeMode = searchParams.get("customize") === "true";
 
-  // Handle navigation after auth check - simplified logic
+  // Immediately redirect based on auth status - no delays
   useEffect(() => {
-    // Don't wait for anything else, just check auth status
-    console.log("Index: Auth state", { isAuthenticated, isLoading });
-    
-    // Small timeout to ensure auth check has time to initialize
-    const timer = setTimeout(() => {
-      if (isAuthenticated) {
-        console.log("Index: User is authenticated, redirecting to", customizeMode ? "settings" : "dashboard");
-        navigate(customizeMode ? "/settings" : "/dashboard");
-      } else {
-        console.log("Index: User is not authenticated, redirecting to login");
-        navigate("/login");
-      }
-    }, 100); // Very short timeout
-    
-    return () => clearTimeout(timer);
-  }, [navigate, isAuthenticated, customizeMode, isLoading]);
+    // Direct navigation without timeouts or conditions
+    if (isAuthenticated) {
+      console.log("Index: User is authenticated, redirecting to", customizeMode ? "settings" : "dashboard");
+      navigate(customizeMode ? "/settings" : "/dashboard", { replace: true });
+    } else {
+      console.log("Index: User is not authenticated, redirecting to login");
+      navigate("/login", { replace: true });
+    }
+  }, [navigate, isAuthenticated, customizeMode]);
 
-  // Simple loading state
-  return (
-    <div className="flex items-center justify-center min-h-screen">
-      <div className="text-lg">Loading...</div>
-    </div>
-  );
+  // Return null instead of a loading screen
+  return null;
 };
 
 export default Index;
