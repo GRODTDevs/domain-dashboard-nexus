@@ -20,11 +20,21 @@ function runCommand(command, args, options = {}) {
 // Start both server and client
 console.log('🚀 Starting development environment...');
 
-// Start the Vite dev server for the client
-const clientProcess = runCommand('npx', ['--no-install', 'vite', '--port', '8080']);
-
 // Start the backend server with older Node.js compatibility
 const serverProcess = runCommand('node', ['server.mjs']);
+
+// Use a more compatible approach to start Vite
+// Instead of using npx directly, which might use newer syntax
+const clientProcess = runCommand('node', [
+  './node_modules/vite/bin/vite.js',
+  '--port',
+  '8080'
+], {
+  env: {
+    ...process.env,
+    NODE_OPTIONS: '--no-experimental-fetch'  // Disable experimental features
+  }
+});
 
 // Handle process termination
 process.on('SIGINT', () => {
