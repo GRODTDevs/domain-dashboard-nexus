@@ -26,8 +26,21 @@ export function setupRoutes(app) {
 
   // Database initialization endpoint
   app.post('/api/db/init', async (req, res) => {
+    console.log('Server: Database initialization endpoint called with body:', 
+                req.body ? JSON.stringify(req.body).substring(0, 50) + '...' : 'null');
+    
     // First check environment variable, then request body
     const mongoUri = process.env.MONGODB_URI || req.body.uri;
+    
+    if (!mongoUri) {
+      console.error('Server: No MongoDB URI available for initialization');
+      return res.status(400).json({
+        status: 'error',
+        message: 'No MongoDB connection string provided'
+      });
+    }
+    
+    console.log('Server: Starting database initialization');
     const result = await initializeDatabase(mongoUri);
     
     if (result.status === 'ok') {

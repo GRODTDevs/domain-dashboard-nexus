@@ -30,8 +30,24 @@ export const checkConnectionStatus = async (mongoUri) => {
       console.log('Server: Creating new MongoDB client');
       mongoClient = new MongoClient(mongoUri);
       await mongoClient.connect();
-      db = mongoClient.db();
-      console.log('Server: MongoDB connected successfully');
+      
+      // Get database name from URI or use default
+      let dbName = 'domain_manager';
+      try {
+        const url = new URL(mongoUri);
+        const pathParts = url.pathname.split('/');
+        if (pathParts.length > 1 && pathParts[1]) {
+          dbName = pathParts[1];
+          console.log(`Server: Found database name in URI: ${dbName}`);
+        } else {
+          console.log(`Server: No database name found in URI, using default: ${dbName}`);
+        }
+      } catch (error) {
+        console.warn('Server: Could not parse database name from URI, using default:', dbName);
+      }
+      
+      db = mongoClient.db(dbName);
+      console.log(`Server: MongoDB connected successfully to database: ${dbName}`);
     } else {
       console.log('Server: Using existing MongoDB client');
     }
@@ -86,8 +102,24 @@ export const initializeDatabase = async (mongoUri) => {
       console.log('Server: Connecting to MongoDB for initialization...');
       mongoClient = new MongoClient(mongoUri);
       await mongoClient.connect();
-      db = mongoClient.db();
-      console.log('Server: MongoDB connected for initialization');
+      
+      // Get database name from URI or use default
+      let dbName = 'domain_manager';
+      try {
+        const url = new URL(mongoUri);
+        const pathParts = url.pathname.split('/');
+        if (pathParts.length > 1 && pathParts[1]) {
+          dbName = pathParts[1];
+          console.log(`Server: Found database name in URI: ${dbName}`);
+        } else {
+          console.log(`Server: No database name found in URI, using default: ${dbName}`);
+        }
+      } catch (error) {
+        console.warn('Server: Could not parse database name from URI, using default:', dbName);
+      }
+      
+      db = mongoClient.db(dbName);
+      console.log(`Server: MongoDB connected for initialization to database: ${dbName}`);
     } else {
       console.log('Server: Using existing MongoDB client for initialization');
     }
@@ -125,6 +157,7 @@ export const initializeDatabase = async (mongoUri) => {
 async function initializeCollections(collectionNames) {
   // Users collection with admin user
   if (!collectionNames.includes('users')) {
+    console.log('Server: Creating users collection');
     await db.createCollection('users');
     
     // Create default admin user
@@ -147,29 +180,41 @@ async function initializeCollections(collectionNames) {
       lastLogin: new Date().toISOString()
     });
     
-    console.log('Users collection created with admin and regular users');
+    console.log('Server: Users collection created with admin and regular users');
+  } else {
+    console.log('Server: Users collection already exists');
   }
   
   // Files collection for storing file metadata
   if (!collectionNames.includes('files')) {
+    console.log('Server: Creating files collection');
     await db.createCollection('files');
-    console.log('Files collection created');
+    console.log('Server: Files collection created');
+  } else {
+    console.log('Server: Files collection already exists');
   }
   
   // Notes collection
   if (!collectionNames.includes('notes')) {
+    console.log('Server: Creating notes collection');
     await db.createCollection('notes');
-    console.log('Notes collection created');
+    console.log('Server: Notes collection created');
+  } else {
+    console.log('Server: Notes collection already exists');
   }
   
   // SEO analysis collection
   if (!collectionNames.includes('seo_analysis')) {
+    console.log('Server: Creating seo_analysis collection');
     await db.createCollection('seo_analysis');
-    console.log('SEO analysis collection created');
+    console.log('Server: SEO analysis collection created');
+  } else {
+    console.log('Server: SEO analysis collection already exists');
   }
   
-  // Domains collection
+  // Domains collection if it doesn't exist
   if (!collectionNames.includes('domains')) {
+    console.log('Server: Creating domains collection');
     await db.createCollection('domains');
     
     // Create some sample domains
@@ -247,7 +292,9 @@ async function initializeCollections(collectionNames) {
       }
     ]);
     
-    console.log('Domains collection created with sample data');
+    console.log('Server: Domains collection created with sample data');
+  } else {
+    console.log('Server: Domains collection already exists');
   }
 }
 
