@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -16,7 +17,6 @@ import DomainEditPage from "./pages/domain-edit";
 import SettingsPage from "./pages/settings";
 import UsersPage from "./pages/users";
 import { useState, useEffect } from "react";
-import { DatabaseConnectionButton } from "./components/database-connection-button";
 import { isDbConnected } from "./lib/db";
 import { isDatabaseConfigured } from "./lib/database-config";
 
@@ -33,16 +33,11 @@ const App = () => {
   
   // Add state to track app initialization
   const [isInitialized, setIsInitialized] = useState(false);
-  const [showDbWarning, setShowDbWarning] = useState(false);
   
   useEffect(() => {
     // Simulate any initialization tasks
     const initApp = async () => {
       try {
-        // Only show warning if there's no connection string configured
-        const isConfigured = isDatabaseConfigured();
-        setShowDbWarning(!isConfigured);
-        
         // Always mark as initialized to show the app
         setIsInitialized(true);
       } catch (error) {
@@ -67,16 +62,6 @@ const App = () => {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <TooltipProvider>
-          {showDbWarning && (
-            <div className="fixed top-0 left-0 right-0 bg-amber-100 dark:bg-amber-900 p-2 z-50 flex justify-center">
-              <div className="flex items-center gap-2">
-                <span className="text-amber-800 dark:text-amber-200">
-                  MongoDB connection not configured
-                </span>
-                <DatabaseConnectionButton />
-              </div>
-            </div>
-          )}
           <Toaster />
           <Sonner />
           <HashRouter>
