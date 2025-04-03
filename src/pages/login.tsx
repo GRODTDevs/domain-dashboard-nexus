@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -51,8 +52,16 @@ const LoginPage = () => {
     setIsLoading(true);
 
     try {
-      await login({ email, password });
-      navigate(from, { replace: true });
+      const success = await login({ email, password });
+      if (success) {
+        navigate(from, { replace: true });
+      } else {
+        toast({
+          title: "Authentication failed",
+          description: "Invalid email or password. Please try again.",
+          variant: "destructive",
+        });
+      }
     } catch (error) {
       toast({
         title: "Authentication failed",

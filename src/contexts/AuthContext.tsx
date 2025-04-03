@@ -12,7 +12,7 @@ type AuthContextType = {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<boolean>;
+  login: ({ email, password }: { email: string; password: string }) => Promise<boolean>;
   logout: () => void;
 };
 
@@ -49,7 +49,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setIsLoading(false);
   }, []);
 
-  const login = async (email: string, password: string): Promise<boolean> => {
+  const login = async ({ email, password }: { email: string; password: string }): Promise<boolean> => {
     // Simulate API call delay
     await new Promise((resolve) => setTimeout(resolve, 800));
     
