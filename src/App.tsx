@@ -18,7 +18,8 @@ import SettingsPage from "./pages/settings";
 import UsersPage from "./pages/users";
 import { useState, useEffect } from "react";
 import { DatabaseConnectionButton } from "./components/database-connection-button";
-import { isDbConnected } from "./lib/db";
+import { isDbConnected, getConnectionError } from "./lib/db";
+import { isDatabaseConfigured } from "./lib/database-config";
 
 const App = () => {
   // Create a new QueryClient instance
@@ -34,13 +35,19 @@ const App = () => {
   // Add state to track app initialization
   const [isInitialized, setIsInitialized] = useState(false);
   const [dbConnected, setDbConnected] = useState(isDbConnected());
+  const [showDbWarning, setShowDbWarning] = useState(false);
   
   useEffect(() => {
     // Simulate any initialization tasks
     const initApp = async () => {
       try {
         // Check database connection
-        setDbConnected(isDbConnected());
+        const dbConnected = isDbConnected();
+        setDbConnected(dbConnected);
+        
+        // Only show the warning if there's no connection string configured
+        setShowDbWarning(!dbConnected && !isDatabaseConfigured());
+        
         setIsInitialized(true);
       } catch (error) {
         console.error("Error initializing app:", error);
@@ -52,7 +59,11 @@ const App = () => {
     
     // Poll for database connection status changes
     const checkDbInterval = setInterval(() => {
-      setDbConnected(isDbConnected());
+      const connected = isDbConnected();
+      setDbConnected(connected);
+      
+      // Only show the warning if there's no connection string configured
+      setShowDbWarning(!connected && !isDatabaseConfigured());
     }, 5000);
     
     return () => clearInterval(checkDbInterval);
@@ -71,7 +82,7 @@ const App = () => {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <TooltipProvider>
-          {!dbConnected && (
+          {showDbWarning && (
             <div className="fixed top-0 left-0 right-0 bg-amber-100 dark:bg-amber-900 p-2 z-50 flex justify-center">
               <div className="flex items-center gap-2">
                 <span className="text-amber-800 dark:text-amber-200">

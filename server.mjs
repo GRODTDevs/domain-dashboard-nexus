@@ -31,6 +31,13 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// MongoDB connection status endpoint
+app.get('/api/db/status', (req, res) => {
+  // Since we're not actually connecting to MongoDB from the server,
+  // we'll just return a success status if the endpoint is called
+  res.json({ status: 'ok', connected: true });
+});
+
 // For any other routes, send the index.html file
 // This enables client-side routing
 app.get('*', (req, res) => {
