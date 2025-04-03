@@ -2,7 +2,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { initializeStorage } from "@/lib/db";
 import { isDatabaseConfigured } from "@/lib/database-config";
 import { DatabaseConnectionButton } from "@/components/database-connection-button";
 
@@ -12,72 +11,53 @@ const Index = () => {
   const [searchParams] = useSearchParams();
   const customizeMode = searchParams.get("customize") === "true";
   const [isDbReady, setIsDbReady] = useState<boolean | null>(null);
-  const [isCheckingDb, setIsCheckingDb] = useState(true);
-  
-  // Check database status
+  const [dbCheckTimeout, setDbCheckTimeout] = useState(false);
+
+  // Check database status with timeout
   useEffect(() => {
+    // Set a timeout to prevent being stuck in loading
+    const timeoutId = setTimeout(() => {
+      setDbCheckTimeout(true);
+    }, 3000); // 3 second timeout
+
+    // Check if DB is configured
     const checkDbStatus = async () => {
-      setIsCheckingDb(true);
       try {
-        // Check if we have a connection string configured
-        if (isDatabaseConfigured()) {
-          try {
-            await initializeStorage();
-            setIsDbReady(true);
-          } catch (error) {
-            console.error("Failed to initialize database:", error);
-            setIsDbReady(false);
-          }
-        } else {
-          setIsDbReady(false);
-        }
+        // Simple check - just see if the connection string exists
+        const isConfigured = isDatabaseConfigured();
+        setIsDbReady(isConfigured);
       } catch (e) {
         console.error("Error checking database status:", e);
         setIsDbReady(false);
-      } finally {
-        setIsCheckingDb(false);
       }
     };
     
     checkDbStatus();
+    
+    return () => clearTimeout(timeoutId);
   }, []);
 
   // Handle navigation after auth check
   useEffect(() => {
-    // Skip navigation if still checking DB status
-    if (isCheckingDb) return;
-    
-    // Once DB check is complete, make navigation decisions
-    if (isDbReady === false) {
-      // Don't navigate if DB is not ready - we'll show the DB connection UI
-      return;
-    }
-    
-    // Only navigate if auth loading is complete
-    if (!isLoading) {
-      if (isAuthenticated) {
-        if (customizeMode) {
-          navigate("/settings");
+    // If we've timed out or completed DB check, proceed with navigation
+    if (dbCheckTimeout || isDbReady !== null) {
+      // Only navigate if auth loading is complete
+      if (!isLoading) {
+        if (isAuthenticated) {
+          if (customizeMode) {
+            navigate("/settings");
+          } else {
+            navigate("/dashboard");
+          }
         } else {
-          navigate("/dashboard");
+          navigate("/login");
         }
-      } else {
-        navigate("/login");
       }
     }
-  }, [navigate, isAuthenticated, customizeMode, isLoading, isDbReady, isCheckingDb]);
+  }, [navigate, isAuthenticated, customizeMode, isLoading, isDbReady, dbCheckTimeout]);
 
-  // If still checking DB, show loading
-  if (isCheckingDb) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-pulse">Checking database connection...</div>
-      </div>
-    );
-  }
-
-  // If the database is not ready, show the connection button
-  if (isDbReady === false) {
+  // If database is not configured, show connection button
+  if (isDbReady === false || dbCheckTimeout) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen p-4">
         <h1 className="text-2xl font-bold mb-4">Welcome to Domain Dashboard Nexus</h1>
