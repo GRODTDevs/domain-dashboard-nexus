@@ -16,9 +16,6 @@ import DomainNewPage from "./pages/domain-new";
 import DomainEditPage from "./pages/domain-edit";
 import SettingsPage from "./pages/settings";
 import UsersPage from "./pages/users";
-import { useState, useEffect } from "react";
-import { isDbConnected } from "./lib/db";
-import { isDatabaseConfigured } from "./lib/database-config";
 
 const App = () => {
   // Create a new QueryClient instance
@@ -30,34 +27,7 @@ const App = () => {
       },
     },
   });
-  
-  // Add state to track app initialization
-  const [isInitialized, setIsInitialized] = useState(false);
-  
-  useEffect(() => {
-    // Simulate any initialization tasks
-    const initApp = async () => {
-      try {
-        // Always mark as initialized to show the app
-        setIsInitialized(true);
-      } catch (error) {
-        console.error("Error initializing app:", error);
-        setIsInitialized(true); // Still set to true so the app renders
-      }
-    };
-    
-    initApp();
-  }, []);
-  
-  // Show loading state while initializing
-  if (!isInitialized) {
-    return (
-      <div className="h-screen flex items-center justify-center bg-background">
-        <div className="text-lg">Loading application...</div>
-      </div>
-    );
-  }
-  
+
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>

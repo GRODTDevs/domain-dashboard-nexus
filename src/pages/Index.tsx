@@ -9,25 +9,29 @@ const Index = () => {
   const [searchParams] = useSearchParams();
   const customizeMode = searchParams.get("customize") === "true";
 
-  // Handle navigation after auth check
+  // Handle navigation after auth check - simplified logic
   useEffect(() => {
-    if (!isLoading) {
+    // Don't wait for anything else, just check auth status
+    console.log("Index: Auth state", { isAuthenticated, isLoading });
+    
+    // Small timeout to ensure auth check has time to initialize
+    const timer = setTimeout(() => {
       if (isAuthenticated) {
-        if (customizeMode) {
-          navigate("/settings");
-        } else {
-          navigate("/dashboard");
-        }
+        console.log("Index: User is authenticated, redirecting to", customizeMode ? "settings" : "dashboard");
+        navigate(customizeMode ? "/settings" : "/dashboard");
       } else {
+        console.log("Index: User is not authenticated, redirecting to login");
         navigate("/login");
       }
-    }
+    }, 100); // Very short timeout
+    
+    return () => clearTimeout(timer);
   }, [navigate, isAuthenticated, customizeMode, isLoading]);
 
-  // Show loading for auth check
+  // Simple loading state
   return (
     <div className="flex items-center justify-center min-h-screen">
-      <div className="text-lg">Loading application...</div>
+      <div className="text-lg">Loading...</div>
     </div>
   );
 };
