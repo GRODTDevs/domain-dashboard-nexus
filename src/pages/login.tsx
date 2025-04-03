@@ -52,8 +52,12 @@ const LoginPage = () => {
     setIsLoading(true);
 
     try {
-      const success = await login({ email, password });
+      const success = await login({ email, password, rememberMe });
       if (success) {
+        toast({
+          title: "Welcome back!",
+          description: "You have been successfully logged in.",
+        });
         navigate(from, { replace: true });
       } else {
         toast({
@@ -65,9 +69,10 @@ const LoginPage = () => {
     } catch (error) {
       toast({
         title: "Authentication failed",
-        description: "Invalid email or password. Please try again.",
+        description: "An error occurred during login. Please try again.",
         variant: "destructive",
       });
+      console.error("Login error:", error);
     } finally {
       setIsLoading(false);
     }
@@ -84,7 +89,7 @@ const LoginPage = () => {
     >
       {backgroundImage && <div className="absolute inset-0 bg-black/40"></div>}
       
-      <Card className="w-full max-w-md relative z-10 bg-background/80 border-background/10">
+      <Card className="w-full max-w-md relative z-10 bg-background/80 backdrop-blur-sm border-background/10 shadow-xl">
         {logoImage && (
           <div className="flex justify-center mt-6">
             <img
@@ -97,6 +102,7 @@ const LoginPage = () => {
         
         <CardHeader>
           <CardTitle className="text-2xl text-center">Full Stack Hub</CardTitle>
+          <CardDescription className="text-center">Enter your credentials to access your account</CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
@@ -109,6 +115,7 @@ const LoginPage = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                autoComplete="email"
               />
             </div>
             <div className="space-y-2">
@@ -124,6 +131,7 @@ const LoginPage = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                autoComplete="current-password"
               />
             </div>
             <div className="flex items-center space-x-2">

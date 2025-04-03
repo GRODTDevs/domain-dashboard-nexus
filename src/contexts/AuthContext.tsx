@@ -12,7 +12,7 @@ type AuthContextType = {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: ({ email, password }: { email: string; password: string }) => Promise<boolean>;
+  login: ({ email, password, rememberMe }: { email: string; password: string; rememberMe?: boolean }) => Promise<boolean>;
   logout: () => void;
 };
 
@@ -49,7 +49,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setIsLoading(false);
   }, []);
 
-  const login = async ({ email, password }: { email: string; password: string }): Promise<boolean> => {
+  const login = async ({ email, password, rememberMe = false }: { email: string; password: string; rememberMe?: boolean }): Promise<boolean> => {
     // Simulate API call delay
     await new Promise((resolve) => setTimeout(resolve, 800));
     
@@ -60,7 +60,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (foundUser) {
       const { password, ...userWithoutPassword } = foundUser;
       setUser(userWithoutPassword);
-      localStorage.setItem("user", JSON.stringify(userWithoutPassword));
+      
+      // Store user in localStorage if rememberMe is true or remove if false
+      if (rememberMe) {
+        localStorage.setItem("user", JSON.stringify(userWithoutPassword));
+      } else {
+        // For non-remembered sessions, we'll use sessionStorage instead
+        sessionStorage.setItem("user", JSON.stringify(userWithoutPassword));
+        localStorage.removeItem("user");
+      }
       return true;
     }
     return false;
@@ -69,6 +77,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const logout = () => {
     setUser(null);
     localStorage.removeItem("user");
+    sessionStorage.removeItem("user");
   };
 
   return (
