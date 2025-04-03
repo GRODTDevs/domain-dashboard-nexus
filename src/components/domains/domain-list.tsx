@@ -12,15 +12,16 @@ import { StatusBadge } from "../status-badge";
 import { EmptyState } from "../empty-state";
 import { useNavigate } from "react-router-dom";
 import { Button } from "../ui/button";
-import { Eye, Plus } from "lucide-react";
+import { Eye, Plus, RefreshCw } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
 interface DomainListProps {
   domains: Domain[];
   isLoading: boolean;
+  onRefresh?: () => void;
 }
 
-export function DomainList({ domains, isLoading }: DomainListProps) {
+export function DomainList({ domains, isLoading, onRefresh }: DomainListProps) {
   const navigate = useNavigate();
 
   if (isLoading) {
@@ -39,6 +40,11 @@ export function DomainList({ domains, isLoading }: DomainListProps) {
         actionLabel="Add Domain"
         actionIcon={Plus}
         onAction={() => navigate("/domains/new")}
+        secondaryAction={onRefresh ? {
+          label: "Refresh",
+          icon: RefreshCw,
+          onClick: onRefresh
+        } : undefined}
         className="border rounded-md"
       />
     );
@@ -59,7 +65,10 @@ export function DomainList({ domains, isLoading }: DomainListProps) {
       <TableBody>
         {domains.map((domain) => (
           <TableRow key={domain.id} className="cursor-pointer hover:bg-secondary/50" 
-            onClick={() => navigate(`/domains/${domain.id}`)}>
+            onClick={(e) => {
+              e.preventDefault();
+              navigate(`/domains/${domain.id}`);
+            }}>
             <TableCell className="font-medium">{domain.name}</TableCell>
             <TableCell>{domain.registrar}</TableCell>
             <TableCell>

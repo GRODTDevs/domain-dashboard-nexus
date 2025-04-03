@@ -1,3 +1,4 @@
+
 import { Domain, DomainFile, DomainLink, DomainNote, DomainStatus, SEOAnalysis } from "@/types/domain";
 import { v4 as uuidv4 } from 'uuid';
 
@@ -185,6 +186,8 @@ export const deleteDomain = async (id: string): Promise<boolean> => {
   
   const initialLength = domains.length;
   domains = domains.filter(domain => domain.id !== id);
+  
+  // Return true if a domain was actually deleted
   return domains.length !== initialLength;
 };
 

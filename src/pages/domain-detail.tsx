@@ -26,6 +26,7 @@ export default function DomainDetailPage() {
   const [domain, setDomain] = useState<Domain | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const loadDomain = async () => {
     if (!id) return;
@@ -62,19 +63,32 @@ export default function DomainDetailPage() {
     if (!domain) return;
 
     try {
-      await deleteDomain(domain.id);
-      toast({
-        title: "Success",
-        description: `Domain ${domain.name} has been deleted.`,
-      });
-      navigate("/domains");
+      setIsDeleting(true);
+      const success = await deleteDomain(domain.id);
+      
+      if (success) {
+        toast({
+          title: "Success",
+          description: `Domain ${domain.name} has been deleted.`,
+        });
+        // Use replace to prevent going back to a deleted domain
+        navigate("/domains", { replace: true });
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to delete domain. Domain not found.",
+          variant: "destructive",
+        });
+      }
     } catch (error) {
+      console.error("Delete error:", error);
       toast({
         title: "Error",
-        description: "Failed to delete domain.",
+        description: "Failed to delete domain due to a server error.",
         variant: "destructive",
       });
     } finally {
+      setIsDeleting(false);
       setIsConfirmingDelete(false);
     }
   };

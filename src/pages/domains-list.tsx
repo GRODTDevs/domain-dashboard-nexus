@@ -8,26 +8,34 @@ import { useEffect, useState } from "react";
 import { Domain } from "@/types/domain";
 import { DomainList } from "@/components/domains/domain-list";
 import { Input } from "@/components/ui/input";
+import { useToast } from "@/hooks/use-toast";
 
 export default function DomainsListPage() {
   const [domains, setDomains] = useState<Domain[]>([]);
   const [filteredDomains, setFilteredDomains] = useState<Domain[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const { toast } = useToast();
+
+  const loadDomains = async () => {
+    setIsLoading(true);
+    try {
+      const data = await fetchDomains();
+      setDomains(data);
+      setFilteredDomains(data);
+    } catch (error) {
+      console.error("Failed to fetch domains:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load domains. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const loadDomains = async () => {
-      try {
-        const data = await fetchDomains();
-        setDomains(data);
-        setFilteredDomains(data);
-      } catch (error) {
-        console.error("Failed to fetch domains:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     loadDomains();
   }, []);
 
@@ -73,7 +81,11 @@ export default function DomainsListPage() {
       </div>
 
       <div className="rounded-lg border">
-        <DomainList domains={filteredDomains} isLoading={isLoading} />
+        <DomainList 
+          domains={filteredDomains} 
+          isLoading={isLoading}
+          onRefresh={loadDomains}
+        />
       </div>
     </Layout>
   );
