@@ -24,6 +24,10 @@ interface DomainListProps {
 export function DomainList({ domains, isLoading, onRefresh }: DomainListProps) {
   const navigate = useNavigate();
 
+  const handleRowClick = (domainId: string) => {
+    navigate(`/domains/${domainId}`);
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center p-8">
@@ -65,10 +69,7 @@ export function DomainList({ domains, isLoading, onRefresh }: DomainListProps) {
       <TableBody>
         {domains.map((domain) => (
           <TableRow key={domain.id} className="cursor-pointer hover:bg-secondary/50" 
-            onClick={(e) => {
-              e.preventDefault();
-              navigate(`/domains/${domain.id}`);
-            }}>
+            onClick={() => handleRowClick(domain.id)}>
             <TableCell className="font-medium">{domain.name}</TableCell>
             <TableCell>{domain.registrar}</TableCell>
             <TableCell>
@@ -76,7 +77,7 @@ export function DomainList({ domains, isLoading, onRefresh }: DomainListProps) {
             </TableCell>
             <TableCell>
               {domain.status === "expired" ? (
-                <span className="text-danger">Expired</span>
+                <span className="text-destructive">Expired</span>
               ) : (
                 `${formatDistanceToNow(new Date(domain.expiryDate))} left`
               )}

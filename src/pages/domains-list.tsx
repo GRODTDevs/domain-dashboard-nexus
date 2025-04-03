@@ -2,7 +2,7 @@
 import { Layout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { PlusCircle, Search } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { fetchDomains } from "@/lib/api";
 import { useEffect, useState } from "react";
 import { Domain } from "@/types/domain";
@@ -16,11 +16,13 @@ export default function DomainsListPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const { toast } = useToast();
+  const location = useLocation();
 
   const loadDomains = async () => {
     setIsLoading(true);
     try {
       const data = await fetchDomains();
+      console.log(`Loaded ${data.length} domains`);
       setDomains(data);
       setFilteredDomains(data);
     } catch (error) {
@@ -35,9 +37,10 @@ export default function DomainsListPage() {
     }
   };
 
+  // Load domains on initial mount and also when returning from another route
   useEffect(() => {
     loadDomains();
-  }, []);
+  }, [location.key]); // This will re-run when the location key changes (navigation happens)
 
   useEffect(() => {
     if (!searchQuery.trim()) {

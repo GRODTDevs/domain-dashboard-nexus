@@ -71,7 +71,7 @@ export default function DomainDetailPage() {
           title: "Success",
           description: `Domain ${domain.name} has been deleted.`,
         });
-        // Use replace to prevent going back to a deleted domain
+        // Use replace to prevent going back to a deleted domain and navigate immediately
         navigate("/domains", { replace: true });
       } else {
         toast({
