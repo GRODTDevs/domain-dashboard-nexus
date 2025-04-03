@@ -1,7 +1,6 @@
 
-import { spawn } from 'child_process';
-import { fileURLToPath } from 'url';
-import path from 'path';
+// Use CommonJS syntax since this is running in an older Node.js environment
+const { spawn } = require('child_process');
 
 // Function to run a command
 function runCommand(command, args, options = {}) {
@@ -21,11 +20,12 @@ function runCommand(command, args, options = {}) {
 // Start both server and client
 console.log('🚀 Starting development environment...');
 
-// Start the Vite dev server for the client using npx to avoid direct Vite execution
-const clientProcess = runCommand('npx', ['vite']);
+// Start the Vite dev server for the client
+// Using npx with the --no-install flag to avoid using top-level await
+const clientProcess = runCommand('npx', ['--no-install', 'vite', '--port', '8080']);
 
-// Start the backend server
-const serverProcess = runCommand('node', ['server.js']);
+// Start the backend server with Node.js using the --require flag to support CommonJS
+const serverProcess = runCommand('node', ['--require=./server-commonjs.js']);
 
 // Handle process termination
 process.on('SIGINT', () => {
