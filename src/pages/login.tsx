@@ -79,7 +79,7 @@ const LoginPage = () => {
       style={{
         backgroundImage: backgroundImage ? `url(${backgroundImage})` : 'none',
         backgroundColor: backgroundImage ? undefined : 'var(--background)',
-        backgroundPosition: 'top center'
+        backgroundPosition: 'center center'
       }}
     >
       {backgroundImage && <div className="absolute inset-0 bg-black/40"></div>}
