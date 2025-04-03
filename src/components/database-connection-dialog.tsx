@@ -1,9 +1,9 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { initializeStorage, isStorageInitialized } from "@/lib/db";
+import { initializeStorage, isStorageInitialized, isUsingExternalDatabase } from "@/lib/db";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Switch } from "@/components/ui/switch";
@@ -19,38 +19,59 @@ export function DatabaseConnectionDialog({ isOpen, onOpenChange }: DatabaseConne
   const [isPersistent, setIsPersistent] = useState(true);
   const [isConnecting, setIsConnecting] = useState(false);
   const [connectionString, setConnectionString] = useState('');
-  const [useExternalDb, setUseExternalDb] = useState(false);
+  const [useExternalDb, setUseExternalDb] = useState(true); // Default to using MongoDB
   const { toast } = useToast();
+
+  // Load existing connection string if available
+  useEffect(() => {
+    if (isOpen) {
+      const stored = localStorage.getItem('database_connection_string');
+      if (stored) {
+        setConnectionString(stored);
+        setUseExternalDb(true);
+      }
+      
+      const persistenceEnabled = localStorage.getItem('data_persistence_enabled');
+      if (persistenceEnabled !== null) {
+        setIsPersistent(persistenceEnabled === 'true');
+      }
+    }
+  }, [isOpen]);
 
   const handleConnect = async () => {
     setIsConnecting(true);
     try {
-      // Initialize local storage for data persistence
-      const initialized = await initializeStorage();
-      
-      if (!initialized) {
-        throw new Error("Failed to initialize local storage");
-      }
-      
-      // If using external database, also initialize that connection
-      if (useExternalDb && connectionString) {
+      // If using MongoDB, validate connection string
+      if (useExternalDb) {
+        if (!connectionString) {
+          throw new Error("MongoDB connection string is required");
+        }
+        
+        if (!connectionString.startsWith('mongodb://') && !connectionString.startsWith('mongodb+srv://')) {
+          throw new Error("Invalid MongoDB connection string format. Should start with mongodb:// or mongodb+srv://");
+        }
+        
+        // Store the connection string
         setDatabaseConnectionString(connectionString);
+        
+        // Try to initialize the database connection
         const dbConnected = await initializeDatabase();
         
         if (!dbConnected) {
-          throw new Error("Failed to connect to external database");
+          throw new Error("Failed to connect to MongoDB database");
         }
         
         toast({
-          title: "Database Connected",
-          description: "Successfully connected to external database",
+          title: "MongoDB Connected",
+          description: "Successfully connected to MongoDB database",
         });
-      } else {
-        // Just using local storage
-        toast({
-          title: "Storage Initialized",
-          description: "Successfully configured local storage for data persistence",
-        });
+      }
+      
+      // Initialize storage with the persistence preference
+      const initialized = await initializeStorage(isPersistent);
+      
+      if (!initialized) {
+        throw new Error("Failed to initialize storage");
       }
       
       // Store the persistence preference
@@ -58,7 +79,7 @@ export function DatabaseConnectionDialog({ isOpen, onOpenChange }: DatabaseConne
       onOpenChange(false);
       
     } catch (error) {
-      console.error("Error initializing storage:", error);
+      console.error("Error connecting to database:", error);
       toast({
         title: "Connection Error",
         description: error instanceof Error ? error.message : "An unknown error occurred",
@@ -73,9 +94,9 @@ export function DatabaseConnectionDialog({ isOpen, onOpenChange }: DatabaseConne
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Data Storage Configuration</DialogTitle>
+          <DialogTitle>MongoDB Connection</DialogTitle>
           <DialogDescription>
-            Configure data persistence settings for your domain management
+            Configure your MongoDB database connection
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
@@ -91,14 +112,14 @@ export function DatabaseConnectionDialog({ isOpen, onOpenChange }: DatabaseConne
               />
             </div>
             <p className="text-xs text-muted-foreground">
-              When enabled, your domain data will be stored in the browser's local storage.
+              When enabled, your domain data will be stored persistently.
             </p>
           </div>
           
           <div className="grid gap-2">
             <div className="flex items-center justify-between">
               <Label htmlFor="external-db-toggle" className="text-sm font-medium">
-                Use external database
+                Use MongoDB
               </Label>
               <Switch
                 id="external-db-toggle"
@@ -108,7 +129,7 @@ export function DatabaseConnectionDialog({ isOpen, onOpenChange }: DatabaseConne
             </div>
             {useExternalDb && (
               <div className="space-y-2">
-                <Label htmlFor="connection-string">Connection String</Label>
+                <Label htmlFor="connection-string">MongoDB Connection String</Label>
                 <Input 
                   id="connection-string"
                   type="text"
@@ -118,7 +139,7 @@ export function DatabaseConnectionDialog({ isOpen, onOpenChange }: DatabaseConne
                   className="w-full"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Enter your database connection string. For MongoDB, this typically starts with "mongodb://".
+                  Enter your MongoDB connection string. This should start with "mongodb://" or "mongodb+srv://".
                 </p>
               </div>
             )}
@@ -134,7 +155,7 @@ export function DatabaseConnectionDialog({ isOpen, onOpenChange }: DatabaseConne
             onClick={handleConnect}
           >
             {isConnecting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {isConnecting ? 'Connecting...' : 'Initialize Storage'}
+            {isConnecting ? 'Connecting...' : 'Connect to MongoDB'}
           </Button>
         </DialogFooter>
       </DialogContent>

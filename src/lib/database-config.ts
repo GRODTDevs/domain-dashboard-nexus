@@ -1,9 +1,12 @@
 
 // Database configuration
 
+import { MongoClient } from 'mongodb';
+
 // This is where you'll store your database connection string
 // For security, this should be loaded from an environment variable
 let DATABASE_URL = '';
+let mongoClient: MongoClient | null = null;
 
 /**
  * Set the database connection string
@@ -39,9 +42,24 @@ export const isDatabaseConfigured = (): boolean => {
 };
 
 /**
+ * Get the MongoDB client
+ * @returns The MongoDB client instance
+ */
+export const getMongoClient = (): MongoClient | null => {
+  return mongoClient;
+};
+
+/**
+ * Set the MongoDB client instance
+ * @param client The MongoDB client to set
+ */
+export const setMongoClient = (client: MongoClient | null): void => {
+  mongoClient = client;
+};
+
+/**
  * Initialize the database connection
- * This is a placeholder function that you would replace with actual database
- * initialization code, such as creating a MongoDB client or SQL connection
+ * This creates a MongoDB client and connects to the database
  */
 export const initializeDatabase = async (): Promise<boolean> => {
   const connectionString = getDatabaseConnectionString();
@@ -52,14 +70,27 @@ export const initializeDatabase = async (): Promise<boolean> => {
   }
   
   try {
-    // Here you would initialize your actual database connection
-    console.log('Initializing database connection with string:', 
+    if (mongoClient) {
+      // Close the existing connection if there is one
+      await mongoClient.close();
+    }
+    
+    console.log('Initializing MongoDB connection with string:', 
       connectionString.substring(0, 10) + '...');
     
-    // For demo purposes, we'll just return true after a short delay
-    await new Promise(resolve => setTimeout(resolve, 500));
+    // Create a new MongoDB client
+    const client = new MongoClient(connectionString);
     
-    console.log('Database connection initialized successfully');
+    // Connect to the server
+    await client.connect();
+    
+    // Verify the connection
+    await client.db('admin').command({ ping: 1 });
+    
+    // Store the client
+    setMongoClient(client);
+    
+    console.log('MongoDB connection initialized successfully');
     return true;
   } catch (error) {
     console.error('Failed to initialize database connection:', error);
