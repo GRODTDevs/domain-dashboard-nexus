@@ -1,3 +1,4 @@
+
 import { Layout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { PlusCircle, Search, Database } from "lucide-react";
@@ -20,7 +21,29 @@ export default function DomainsListPage() {
   const { toast } = useToast();
   const location = useLocation();
 
-  // Check for existing MongoDB connection on component mount
+  // Auto-connect to MongoDB on component mount
+  useEffect(() => {
+    const autoConnectToMongoDB = async () => {
+      if (!isDbConnected()) {
+        try {
+          const connected = await initializeDb(); // Use default connection string
+          if (connected) {
+            console.log("Auto-connected to MongoDB using default connection string");
+            toast({
+              title: "Database Connected",
+              description: "Successfully connected to MongoDB database (simulated)",
+            });
+          }
+        } catch (error) {
+          console.error("Failed to auto-connect to MongoDB:", error);
+        }
+      }
+    };
+    
+    autoConnectToMongoDB();
+  }, [toast]);
+
+  // Check for existing MongoDB connection on component mount (fallback to localStorage)
   useEffect(() => {
     const savedConnection = localStorage.getItem("mongodb_connection_string");
     if (savedConnection && !isDbConnected()) {

@@ -1,4 +1,3 @@
-
 // Managing MongoDB connection state
 let connectionStatus = {
   connected: false,
@@ -6,8 +5,11 @@ let connectionStatus = {
   error: null as string | null
 };
 
+// Default MongoDB connection string
+const DEFAULT_MONGO_URI = "mongodb+srv://shauncheeseman:<db_password>@cluster0.if6uc.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
+
 // This is a mock version that works in the browser
-export const initializeDb = async (mongoUri: string) => {
+export const initializeDb = async (mongoUri: string = DEFAULT_MONGO_URI) => {
   try {
     // Simulate a connection attempt
     console.log("Attempting to connect to MongoDB with URI:", mongoUri);

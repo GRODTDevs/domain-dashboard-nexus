@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,15 +8,30 @@ import { initializeDb, isDbConnected } from "@/lib/db";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
+// Default MongoDB connection string
+const DEFAULT_MONGO_URI = "mongodb+srv://shauncheeseman:<db_password>@cluster0.if6uc.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
+
 interface DatabaseConnectionDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
 export function DatabaseConnectionDialog({ isOpen, onOpenChange }: DatabaseConnectionDialogProps) {
-  const [connectionString, setConnectionString] = useState("");
+  const [connectionString, setConnectionString] = useState(DEFAULT_MONGO_URI);
   const [isConnecting, setIsConnecting] = useState(false);
   const { toast } = useToast();
+
+  // Set connection string from localStorage if available when dialog opens
+  useEffect(() => {
+    if (isOpen) {
+      const savedConnection = localStorage.getItem("mongodb_connection_string");
+      if (savedConnection) {
+        setConnectionString(savedConnection);
+      } else {
+        setConnectionString(DEFAULT_MONGO_URI);
+      }
+    }
+  }, [isOpen]);
 
   const handleConnect = async () => {
     if (!connectionString.trim()) {
