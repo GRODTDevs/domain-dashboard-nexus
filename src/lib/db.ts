@@ -1,7 +1,7 @@
 
 // MongoDB Database Management
 
-import { getDatabaseConnectionString, isDatabaseInstalled, setDatabaseInstalled } from './database-config';
+import { getDatabaseConnectionString, isDatabaseInstalled as configIsDatabaseInstalled, setDatabaseInstalled } from './database-config';
 
 let storageStatus = {
   initialized: false,
@@ -35,7 +35,7 @@ export const initializeStorage = async () => {
         console.log("MongoDB connection tested successfully via server API");
         
         // Check if database is installed
-        const isInstalled = isDatabaseInstalled();
+        const isInstalled = configIsDatabaseInstalled();
         
         if (!isInstalled) {
           console.log("Database not installed, initializing...");

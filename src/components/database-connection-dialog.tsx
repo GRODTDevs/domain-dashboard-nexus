@@ -59,7 +59,7 @@ export function DatabaseConnectionDialog({ isOpen, onOpenChange }: DatabaseConne
       
       toast({
         title: "MongoDB Connection Configured",
-        description: "Your MongoDB connection has been successfully configured."
+        description: "Your MongoDB connection has been successfully configured and initialized."
       });
       
       onOpenChange(false);
@@ -115,7 +115,7 @@ export function DatabaseConnectionDialog({ isOpen, onOpenChange }: DatabaseConne
           {installStatus && (
             <div className="flex items-center gap-2 text-sm">
               <CheckCircle className="h-4 w-4 text-green-500" />
-              <span>Database initialized with sample data</span>
+              <span>Database initialized with collections and sample data</span>
             </div>
           )}
         </div>

@@ -104,7 +104,7 @@ app.post('/api/db/init', async (req, res) => {
     const collections = await db.listCollections().toArray();
     const collectionNames = collections.map(c => c.name);
     
-    // Users collection
+    // Users collection with admin user
     if (!collectionNames.includes('users')) {
       await db.createCollection('users');
       
@@ -127,6 +127,26 @@ app.post('/api/db/init', async (req, res) => {
         createdAt: new Date().toISOString(),
         lastLogin: new Date().toISOString()
       });
+      
+      console.log('Users collection created with admin and regular users');
+    }
+    
+    // Files collection for storing file metadata
+    if (!collectionNames.includes('files')) {
+      await db.createCollection('files');
+      console.log('Files collection created');
+    }
+    
+    // Notes collection
+    if (!collectionNames.includes('notes')) {
+      await db.createCollection('notes');
+      console.log('Notes collection created');
+    }
+    
+    // SEO analysis collection
+    if (!collectionNames.includes('seo_analysis')) {
+      await db.createCollection('seo_analysis');
+      console.log('SEO analysis collection created');
     }
     
     // Domains collection
@@ -207,6 +227,8 @@ app.post('/api/db/init', async (req, res) => {
           seoAnalyses: []
         }
       ]);
+      
+      console.log('Domains collection created with sample data');
     }
     
     res.json({ 
