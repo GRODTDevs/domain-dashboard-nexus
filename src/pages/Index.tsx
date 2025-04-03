@@ -1,28 +1,17 @@
 
-import { useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 
 const Index = () => {
-  const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
-  const [searchParams] = useSearchParams();
-  const customizeMode = searchParams.get("customize") === "true";
-
-  // Immediately redirect based on auth status - no delays
-  useEffect(() => {
-    // Direct navigation without timeouts or conditions
-    if (isAuthenticated) {
-      console.log("Index: User is authenticated, redirecting to", customizeMode ? "settings" : "dashboard");
-      navigate(customizeMode ? "/settings" : "/dashboard", { replace: true });
-    } else {
-      console.log("Index: User is not authenticated, redirecting to login");
-      navigate("/login", { replace: true });
-    }
-  }, [navigate, isAuthenticated, customizeMode]);
-
-  // Return null instead of a loading screen
-  return null;
+  const { isAuthenticated, isLoading } = useAuth();
+  
+  // Show minimal loading if auth is still being determined
+  if (isLoading) {
+    return <div className="h-screen flex items-center justify-center">Loading...</div>;
+  }
+  
+  // Use Navigate component for immediate redirection
+  return isAuthenticated ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />;
 };
 
 export default Index;

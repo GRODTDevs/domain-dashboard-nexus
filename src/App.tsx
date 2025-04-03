@@ -36,9 +36,11 @@ const App = () => {
           <Sonner />
           <HashRouter>
             <Routes>
+              {/* Home route - redirects based on auth status */}
+              <Route path="/" element={<Index />} />
+              
               {/* Public routes */}
               <Route path="/login" element={<LoginPage />} />
-              <Route path="/" element={<Index />} />
               
               {/* Protected routes */}
               <Route path="/dashboard" element={
@@ -51,14 +53,14 @@ const App = () => {
                   <DomainsListPage />
                 </ProtectedRoute>
               } />
-              <Route path="/domains/:id" element={
-                <ProtectedRoute>
-                  <DomainDetailPage />
-                </ProtectedRoute>
-              } />
               <Route path="/domains/new" element={
                 <ProtectedRoute>
                   <DomainNewPage />
+                </ProtectedRoute>
+              } />
+              <Route path="/domains/:id" element={
+                <ProtectedRoute>
+                  <DomainDetailPage />
                 </ProtectedRoute>
               } />
               <Route path="/domains/:id/edit" element={
@@ -76,6 +78,8 @@ const App = () => {
                   <UsersPage />
                 </ProtectedRoute>
               } />
+              
+              {/* 404 route */}
               <Route path="*" element={<NotFound />} />
             </Routes>
           </HashRouter>

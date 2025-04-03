@@ -38,48 +38,59 @@ const MOCK_USERS = [
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false); // Initialize as false to prevent initial loading state
 
   useEffect(() => {
     // Check for existing session from both localStorage and sessionStorage
-    const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
-    if (storedUser) {
+    const checkAuth = () => {
       try {
-        setUser(JSON.parse(storedUser));
+        const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
+        if (storedUser) {
+          setUser(JSON.parse(storedUser));
+        }
       } catch (error) {
         console.error("Failed to parse stored user:", error);
         // Clear invalid storage
         localStorage.removeItem("user");
         sessionStorage.removeItem("user");
+      } finally {
+        // Always set isLoading to false when done
+        setIsLoading(false);
       }
-    }
-    setIsLoading(false);
+    };
+    
+    checkAuth();
   }, []);
 
   const login = async ({ email, password, rememberMe = false }: { email: string; password: string; rememberMe?: boolean }): Promise<boolean> => {
-    // Simulate API call delay
-    await new Promise((resolve) => setTimeout(resolve, 800));
-    
-    const foundUser = MOCK_USERS.find(
-      (u) => u.email === email && u.password === password
-    );
-    
-    if (foundUser) {
-      const { password, ...userWithoutPassword } = foundUser;
-      setUser(userWithoutPassword);
+    setIsLoading(true);
+    try {
+      // Simulate API call delay
+      await new Promise((resolve) => setTimeout(resolve, 800));
       
-      // Store user in localStorage if rememberMe is true or remove if false
-      if (rememberMe) {
-        localStorage.setItem("user", JSON.stringify(userWithoutPassword));
-        sessionStorage.removeItem("user");
-      } else {
-        // For non-remembered sessions, we'll use sessionStorage instead
-        sessionStorage.setItem("user", JSON.stringify(userWithoutPassword));
-        localStorage.removeItem("user");
+      const foundUser = MOCK_USERS.find(
+        (u) => u.email === email && u.password === password
+      );
+      
+      if (foundUser) {
+        const { password, ...userWithoutPassword } = foundUser;
+        setUser(userWithoutPassword);
+        
+        // Store user in localStorage if rememberMe is true or remove if false
+        if (rememberMe) {
+          localStorage.setItem("user", JSON.stringify(userWithoutPassword));
+          sessionStorage.removeItem("user");
+        } else {
+          // For non-remembered sessions, we'll use sessionStorage instead
+          sessionStorage.setItem("user", JSON.stringify(userWithoutPassword));
+          localStorage.removeItem("user");
+        }
+        return true;
       }
-      return true;
+      return false;
+    } finally {
+      setIsLoading(false);
     }
-    return false;
   };
 
   const logout = () => {
