@@ -32,9 +32,9 @@ const App = () => {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <TooltipProvider>
-          <Toaster />
-          <Sonner />
           <HashRouter>
+            <Toaster />
+            <Sonner />
             <Routes>
               {/* Home route - redirects based on auth status */}
               <Route path="/" element={<Index />} />

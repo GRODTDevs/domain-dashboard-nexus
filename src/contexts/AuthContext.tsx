@@ -38,7 +38,7 @@ const MOCK_USERS = [
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(false); // Initialize as false to prevent initial loading state
+  const [isLoading, setIsLoading] = useState(true); // Start with loading true until we check storage
 
   useEffect(() => {
     // Check for existing session from both localStorage and sessionStorage
@@ -59,7 +59,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     };
     
-    checkAuth();
+    // Add a small timeout to ensure this runs after initial render
+    // This prevents immediate flashing between states
+    setTimeout(checkAuth, 100);
   }, []);
 
   const login = async ({ email, password, rememberMe = false }: { email: string; password: string; rememberMe?: boolean }): Promise<boolean> => {

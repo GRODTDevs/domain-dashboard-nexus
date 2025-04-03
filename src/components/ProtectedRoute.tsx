@@ -7,6 +7,7 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, isLoading } = useAuth();
   const location = useLocation();
 
+  // Show loading state while authentication is being determined
   if (isLoading) {
     return (
       <div className="h-screen flex items-center justify-center p-4">
@@ -19,10 +20,11 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     );
   }
 
+  // Redirect to login if not authenticated
   if (!isAuthenticated) {
-    // Redirect to login page but save the location they tried to access
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
+  // Render children if authenticated
   return <>{children}</>;
 };
