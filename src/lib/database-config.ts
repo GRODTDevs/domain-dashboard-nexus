@@ -1,6 +1,5 @@
 
 // Database configuration
-import { parse as parseUrl } from 'url';
 
 let DATABASE_URL = '';
 let DATABASE_INSTALLED = false;
@@ -84,9 +83,9 @@ export const validateConnectionString = (connectionString: string): boolean => {
   }
   
   try {
-    // Parse the URL to check for basic components
-    const parsedUrl = parseUrl(connectionString);
-    if (!parsedUrl.hostname) {
+    // Use the URL API instead of Node's url.parse
+    const url = new URL(connectionString);
+    if (!url.hostname) {
       console.log('Connection string is missing hostname');
       return false;
     }
