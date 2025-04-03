@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { HashRouter, Routes, Route, Navigate } from "react-router-dom";
+import { HashRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import LoginPage from "./pages/login";
@@ -18,7 +18,7 @@ import SettingsPage from "./pages/settings";
 import UsersPage from "./pages/users";
 
 const App = () => {
-  // Create a new QueryClient instance
+  // Create a new QueryClient instance with debugging
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: {
@@ -30,9 +30,9 @@ const App = () => {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <TooltipProvider>
-          <HashRouter>
+      <HashRouter>
+        <AuthProvider>
+          <TooltipProvider>
             <Toaster />
             <Sonner />
             <Routes>
@@ -82,9 +82,9 @@ const App = () => {
               {/* 404 route */}
               <Route path="*" element={<NotFound />} />
             </Routes>
-          </HashRouter>
-        </TooltipProvider>
-      </AuthProvider>
+          </TooltipProvider>
+        </AuthProvider>
+      </HashRouter>
     </QueryClientProvider>
   );
 };

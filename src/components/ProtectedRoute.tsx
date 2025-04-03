@@ -7,6 +7,8 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, isLoading } = useAuth();
   const location = useLocation();
 
+  console.log("ProtectedRoute:", { isAuthenticated, isLoading, path: location.pathname });
+
   // Show loading state while authentication is being determined
   if (isLoading) {
     return (
@@ -22,9 +24,11 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
   // Redirect to login if not authenticated
   if (!isAuthenticated) {
+    console.log("Not authenticated, redirecting to login from:", location.pathname);
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
   // Render children if authenticated
+  console.log("User is authenticated, rendering protected content");
   return <>{children}</>;
 };

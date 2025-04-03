@@ -1,16 +1,26 @@
 
-import { Navigate } from "react-router-dom";
+import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 
 const Index = () => {
   const { isAuthenticated, isLoading } = useAuth();
+  const navigate = useNavigate();
   
-  if (isLoading) {
-    return <div className="h-screen flex items-center justify-center">Loading authentication...</div>;
-  }
+  useEffect(() => {
+    if (!isLoading) {
+      // Only navigate once we're sure about auth state
+      console.log("Index: Navigating based on auth state:", isAuthenticated ? "authenticated" : "not authenticated");
+      navigate(isAuthenticated ? "/dashboard" : "/login", { replace: true });
+    }
+  }, [isAuthenticated, isLoading, navigate]);
   
-  // Use Navigate component for immediate redirection once auth state is known
-  return isAuthenticated ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />;
+  // Always render a loading state - navigation will happen via effect
+  return (
+    <div className="h-screen flex items-center justify-center">
+      <p className="text-lg">Loading application...</p>
+    </div>
+  );
 };
 
 export default Index;

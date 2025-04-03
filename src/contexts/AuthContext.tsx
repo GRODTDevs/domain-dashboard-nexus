@@ -38,15 +38,20 @@ const MOCK_USERS = [
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true); // Start with loading true until we check storage
+  const [isLoading, setIsLoading] = useState(true);
+  const [initialized, setInitialized] = useState(false);
 
+  // Check for existing session once on mount
   useEffect(() => {
-    // Check for existing session from both localStorage and sessionStorage
     const checkAuth = () => {
+      console.log("Checking authentication status...");
       try {
         const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
         if (storedUser) {
+          console.log("Found stored user");
           setUser(JSON.parse(storedUser));
+        } else {
+          console.log("No stored user found");
         }
       } catch (error) {
         console.error("Failed to parse stored user:", error);
@@ -54,19 +59,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         localStorage.removeItem("user");
         sessionStorage.removeItem("user");
       } finally {
-        // Always set isLoading to false when done
+        // Always set isLoading to false and initialized to true when done
         setIsLoading(false);
+        setInitialized(true);
+        console.log("Authentication check completed");
       }
     };
     
-    // Add a small timeout to ensure this runs after initial render
-    // This prevents immediate flashing between states
-    setTimeout(checkAuth, 100);
+    // Small delay to ensure DOM is fully loaded
+    const timeoutId = setTimeout(checkAuth, 100);
+    return () => clearTimeout(timeoutId);
   }, []);
 
   const login = async ({ email, password, rememberMe = false }: { email: string; password: string; rememberMe?: boolean }): Promise<boolean> => {
     setIsLoading(true);
     try {
+      console.log("Login attempt for:", email);
       // Simulate API call delay
       await new Promise((resolve) => setTimeout(resolve, 800));
       
@@ -77,6 +85,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (foundUser) {
         const { password, ...userWithoutPassword } = foundUser;
         setUser(userWithoutPassword);
+        console.log("Login successful for:", email);
         
         // Store user in localStorage if rememberMe is true or remove if false
         if (rememberMe) {
@@ -89,6 +98,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
         return true;
       }
+      console.log("Login failed: Invalid credentials");
       return false;
     } finally {
       setIsLoading(false);
@@ -96,10 +106,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const logout = () => {
+    console.log("Logging out user");
     setUser(null);
     localStorage.removeItem("user");
     sessionStorage.removeItem("user");
   };
+
+  // Only render children once we've checked auth status
+  if (!initialized) {
+    return (
+      <div className="h-screen flex items-center justify-center">
+        Initializing application...
+      </div>
+    );
+  }
 
   return (
     <AuthContext.Provider
