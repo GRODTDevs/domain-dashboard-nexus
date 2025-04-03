@@ -26,6 +26,12 @@ export const setDatabaseConnectionString = (connectionString: string) => {
  * @returns The current database connection string
  */
 export const getDatabaseConnectionString = (): string => {
+  // First check if we have an environment variable (for production/deployment)
+  if (import.meta.env.VITE_MONGODB_URI) {
+    console.log('Using MongoDB connection string from environment variable');
+    return import.meta.env.VITE_MONGODB_URI;
+  }
+  
   // If the connection string isn't set in memory, try to load from localStorage
   if (!DATABASE_URL) {
     DATABASE_URL = localStorage.getItem('database_connection_string') || '';

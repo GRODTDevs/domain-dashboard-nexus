@@ -12,7 +12,7 @@ if (!rootElement) throw new Error("Failed to find the root element");
 // Initialize database connection if available
 const initApp = async () => {
   try {
-    // Check if we have a stored connection string
+    // Check if we have a stored connection string or environment variable
     const connectionString = getDatabaseConnectionString();
     if (connectionString) {
       console.log("Found MongoDB connection string, initializing database...");
