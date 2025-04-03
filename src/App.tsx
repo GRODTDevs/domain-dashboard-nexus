@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { HashRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import LoginPage from "./pages/login";
@@ -15,7 +15,7 @@ import DomainDetailPage from "./pages/domain-detail";
 import DomainNewPage from "./pages/domain-new";
 import DomainEditPage from "./pages/domain-edit";
 import SettingsPage from "./pages/settings";
-import UsersPage from "./pages/users"; // Add the new import
+import UsersPage from "./pages/users";
 
 const App = () => {
   // Move QueryClient creation inside the component
@@ -27,7 +27,7 @@ const App = () => {
         <TooltipProvider>
           <Toaster />
           <Sonner />
-          <BrowserRouter>
+          <HashRouter>
             <Routes>
               {/* Public routes */}
               <Route path="/login" element={<LoginPage />} />
@@ -64,7 +64,6 @@ const App = () => {
                   <SettingsPage />
                 </ProtectedRoute>
               } />
-              {/* Add new Users route */}
               <Route path="/users" element={
                 <ProtectedRoute>
                   <UsersPage />
@@ -72,7 +71,7 @@ const App = () => {
               } />
               <Route path="*" element={<NotFound />} />
             </Routes>
-          </BrowserRouter>
+          </HashRouter>
         </TooltipProvider>
       </AuthProvider>
     </QueryClientProvider>
