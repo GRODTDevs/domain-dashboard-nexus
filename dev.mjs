@@ -1,7 +1,7 @@
 
 // Use ES modules syntax for Node.js
 import { spawn } from 'child_process';
-import { existsSync } from 'fs';
+import { existsSync, readdirSync } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -28,7 +28,7 @@ function runCommand(command, args, options = {}) {
 
 // Check if we need to install dependencies
 const shouldInstallDependencies = !existsSync(path.join(__dirname, 'node_modules')) || 
-                                 require('fs').readdirSync(path.join(__dirname, 'node_modules')).length === 0;
+                                 readdirSync(path.join(__dirname, 'node_modules')).length === 0;
 
 // Check if we need to build first
 const shouldBuild = !existsSync(path.join(__dirname, 'dist', 'index.html'));
