@@ -24,18 +24,18 @@ export const checkConnectionStatus = async (mongoUri) => {
     // Log connection attempt (without exposing sensitive data)
     console.log('Server: Attempting to connect to MongoDB...');
     
-    // Create a new client for testing connection with shorter timeouts
+    // Create a new client for testing connection with much shorter timeouts
     const testClient = new MongoClient(mongoUri, {
-      serverSelectionTimeoutMS: 2000, // 2 second timeout for server selection (reduced from 5s)
-      connectTimeoutMS: 5000,        // 5 second timeout for connection (reduced from 10s)
-      socketTimeoutMS: 10000,         // 10 second timeout for socket operations (reduced from 30s)
+      serverSelectionTimeoutMS: 1500, // 1.5 second timeout for server selection (reduced further)
+      connectTimeoutMS: 3000,       // 3 second timeout for connection (reduced further)
+      socketTimeoutMS: 5000,        // 5 second timeout for socket operations (reduced further)
     });
     
     try {
-      // Try to connect with timeout protection
+      // Try to connect with even stricter timeout protection
       const connectPromise = testClient.connect();
       const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('MongoDB connection timed out')), 7000);
+        setTimeout(() => reject(new Error('MongoDB connection timed out after 5s')), 5000);
       });
       
       await Promise.race([connectPromise, timeoutPromise]);
@@ -44,9 +44,14 @@ export const checkConnectionStatus = async (mongoUri) => {
       let dbName = 'fsh';
       console.log(`Server: Using database name: ${dbName}`);
       
-      // Test the connection with a simple operation
+      // Test the connection with a simple operation and timeout
       const testDb = testClient.db(dbName);
-      await testDb.command({ ping: 1 });
+      const pingPromise = testDb.command({ ping: 1 });
+      const pingTimeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('MongoDB ping operation timed out')), 2000);
+      });
+      
+      await Promise.race([pingPromise, pingTimeoutPromise]);
       
       console.log('Server: MongoDB connection test successful');
       
@@ -57,12 +62,19 @@ export const checkConnectionStatus = async (mongoUri) => {
       if (!mongoClient) {
         console.log('Server: Creating new MongoDB client for ongoing use');
         mongoClient = new MongoClient(mongoUri, {
-          serverSelectionTimeoutMS: 10000,  // Shorter timeouts for the persistent client (reduced from 30s)
-          connectTimeoutMS: 10000,         // (reduced from 30s)
-          socketTimeoutMS: 20000,         // (reduced from 60s)
+          serverSelectionTimeoutMS: 5000,  // Shorter timeouts for the persistent client
+          connectTimeoutMS: 5000,        
+          socketTimeoutMS: 10000,       
         });
         
-        await mongoClient.connect();
+        // Setup with timeout protection
+        const mainConnectPromise = mongoClient.connect();
+        const mainTimeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('Main MongoDB connection timed out')), 6000);
+        });
+        
+        await Promise.race([mainConnectPromise, mainTimeoutPromise]);
+        
         db = mongoClient.db(dbName);
         console.log(`Server: MongoDB connected successfully to database: ${dbName}`);
       } else {
