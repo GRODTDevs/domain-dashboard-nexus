@@ -67,9 +67,9 @@ else
   sleep 3
 fi
 
-# Start the Vite development server
-echo "🌐 Starting Vite development server..."
-npm run dev
+# Start the development environment using dev.mjs instead of npm run dev
+echo "🌐 Starting development environment..."
+node dev.mjs
 
 # Clean up when done
 cleanup() {
