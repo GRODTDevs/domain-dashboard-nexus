@@ -3,6 +3,29 @@
 
 # Start script for development environment
 
+# Create a custom gitignore file if it doesn't exist
+if [ ! -f ".gitignore-local" ]; then
+  echo "⚠️ Creating local gitignore file..."
+  cat > .gitignore-local << EOF
+# Local environment variables
+.env
+
+# Log files
+dev-log.txt
+server-log.txt
+
+# Dependencies
+package-lock.json
+
+# Script itself
+start.sh
+EOF
+  
+  # Configure git to use this file for the local repository
+  git config --local core.excludesFile .gitignore-local
+  echo "✅ Created local gitignore and configured git to use it"
+fi
+
 # Pull the latest updates from git
 echo "🔄 Pulling latest updates from git..."
 git pull
