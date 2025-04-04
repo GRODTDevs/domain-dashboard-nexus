@@ -59,7 +59,7 @@ if pgrep -f "node server.mjs" > /dev/null; then
   echo "🖥️ Server is already running"
 else
   echo "🚀 Starting server..."
-  node server.mjs &
+  node server.mjs 2>&1 | tee server-log.txt &
   SERVER_PID=$!
   
   # Wait for server to start
@@ -69,7 +69,7 @@ fi
 
 # Start the development environment using dev.mjs instead of npm run dev
 echo "🌐 Starting development environment..."
-node dev.mjs
+node dev.mjs 2>&1 | tee dev-log.txt
 
 # Clean up when done
 cleanup() {
@@ -86,4 +86,5 @@ cleanup() {
 trap cleanup SIGINT SIGTERM
 
 echo "✨ All services running. Press Ctrl+C to stop."
+echo "📝 Logs are being saved to server-log.txt and dev-log.txt"
 wait
