@@ -189,18 +189,31 @@ async function initializeCollections() {
     { name: 'domains', sampleDocs: [] }
   ];
   
-  // First force create each collection with a creation document
+  // Clear out any existing collections to avoid conflicts
+  for (const col of collectionsToCreate) {
+    try {
+      console.log(`Server: Force dropping ${col.name} collection if it exists`);
+      await db.collection(col.name).drop().catch(() => {
+        console.log(`Server: Collection ${col.name} did not exist or couldn't be dropped`);
+      });
+    } catch (error) {
+      console.log(`Server: Error dropping collection ${col.name}:`, error.message);
+      // Continue anyway - dropping is just to ensure a clean slate
+    }
+  }
+  
+  // Now create each collection with a creation document
   for (const col of collectionsToCreate) {
     try {
       console.log(`Server: Force creating ${col.name} collection with creation document`);
       // Insert a creation document to force collection creation
-      await db.collection(col.name).insertOne({
+      const creationResult = await db.collection(col.name).insertOne({
         _id: `${col.name}_collection_creation`,
         _creationMarker: true,
         collectionName: col.name,
         createdAt: new Date().toISOString()
       });
-      console.log(`Server: ${col.name} collection created successfully with creation document`);
+      console.log(`Server: ${col.name} collection created successfully with creation document ID:`, creationResult.insertedId);
       results[`${col.name}Created`] = true;
       
       // Immediately verify the collection was created
@@ -224,9 +237,11 @@ async function initializeCollections() {
     }
   }
   
-  // Now add actual data to the collections
+  // Now add actual data to each collection, no matter what happened in the previous step
+  // This ensures we make multiple attempts to create the collections
+  
+  // Users collection with admin user
   try {
-    // Users collection with admin user
     console.log('Server: Adding users to users collection');
     
     // Create default admin user
@@ -269,7 +284,7 @@ async function initializeCollections() {
       createdAt: new Date().toISOString(),
       path: "/uploads/sample-file.txt"
     });
-    console.log('Server: Files collection created with sample file');
+    console.log('Server: Files collection created with sample file:', fileResult.insertedId);
     results.fileCollection = fileResult.insertedId;
   } catch (error) {
     console.error('Server: Error creating files collection:', error);
@@ -285,7 +300,7 @@ async function initializeCollections() {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     });
-    console.log('Server: Notes collection created with sample note');
+    console.log('Server: Notes collection created with sample note:', noteResult.insertedId);
     results.noteCollection = noteResult.insertedId;
   } catch (error) {
     console.error('Server: Error creating notes collection:', error);
@@ -301,7 +316,7 @@ async function initializeCollections() {
       recommendations: ["Add meta description", "Optimize images"],
       createdAt: new Date().toISOString()
     });
-    console.log('Server: SEO analysis collection created with sample analysis');
+    console.log('Server: SEO analysis collection created with sample analysis:', seoResult.insertedId);
     results.seoCollection = seoResult.insertedId;
   } catch (error) {
     console.error('Server: Error creating SEO analysis collection:', error);
@@ -392,6 +407,15 @@ async function initializeCollections() {
   } catch (error) {
     console.error('Server: Error creating domains collection:', error);
     results.domainsError = error.message;
+  }
+  
+  // Print a final verification of which collections exist
+  try {
+    const finalCollections = await db.listCollections().toArray();
+    const finalCollectionNames = finalCollections.map(c => c.name);
+    console.log('Server: Final list of all collections after initialization:', finalCollectionNames);
+  } catch (error) {
+    console.error('Server: Error listing collections after initialization:', error);
   }
   
   console.log('Server: Finished initializing collections with results:', results);
