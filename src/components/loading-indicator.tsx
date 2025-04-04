@@ -47,9 +47,9 @@ export function LoadingIndicator({ step, className }: LoadingIndicatorProps) {
         <div className="mt-8 max-w-md p-4 bg-muted rounded-md text-sm">
           <p className="font-medium mb-2">Taking longer than expected?</p>
           <ul className="list-disc pl-5 space-y-1">
-            <li>Check your MongoDB connection string</li>
-            <li>Ensure your MongoDB server is accessible</li>
-            <li>Refresh the page to retry the connection</li>
+            <li>SQLite database is stored locally in your browser</li>
+            <li>Try refreshing the page if the connection is taking too long</li>
+            <li>Check browser console for any error messages</li>
           </ul>
         </div>
       )}

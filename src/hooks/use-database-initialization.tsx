@@ -1,26 +1,24 @@
-
 import { useState, useEffect } from "react";
 import { initializeStorage, isStorageInitialized } from "@/lib/db";
 import { getDatabaseConnectionString } from "@/lib/database-config";
 
 export function useDatabaseInitialization() {
-  const [databaseConfigured, setDatabaseConfigured] = useState(false);
+  const [databaseConfigured, setDatabaseConfigured] = useState(true); // Always true for SQLite
   const [isInitializing, setIsInitializing] = useState(true);
   const [initializationError, setInitializationError] = useState<string | null>(null);
-  const [initializationStep, setInitializationStep] = useState("Checking configuration...");
+  const [initializationStep, setInitializationStep] = useState("Checking SQLite configuration...");
   const [loadTimeout, setLoadTimeout] = useState(false);
   
   // Effect to check if database is configured
   useEffect(() => {
     console.log("Index: Checking database configuration");
-    const connectionString = getDatabaseConnectionString();
-    console.log("Index: Database connection string available:", !!connectionString);
-    setDatabaseConfigured(!!connectionString);
+    // For SQLite this is always true, but we keep the API for compatibility
+    setDatabaseConfigured(true);
   }, []);
   
   // Add a timeout to detect hanging initialization - now much shorter (4s)
   useEffect(() => {
-    if (isInitializing && databaseConfigured) {
+    if (isInitializing) {
       const timeoutId = setTimeout(() => {
         console.log("Index: Initialization taking too long, setting timeout flag");
         setLoadTimeout(true);
@@ -28,15 +26,15 @@ export function useDatabaseInitialization() {
       
       return () => clearTimeout(timeoutId);
     }
-  }, [isInitializing, databaseConfigured]);
+  }, [isInitializing]);
   
   // Effect to initialize database
   useEffect(() => {
     const initDb = async () => {
       console.log("Index: Checking if storage is initialized:", isStorageInitialized());
-      if (!isStorageInitialized() && databaseConfigured) {
+      if (!isStorageInitialized()) {
         try {
-          setInitializationStep("Establishing database connection...");
+          setInitializationStep("Establishing SQLite database connection...");
           console.log("Index: Attempting to initialize database connection");
           
           // Add timeout to prevent hanging - significantly reduced
@@ -53,7 +51,7 @@ export function useDatabaseInitialization() {
           });
           
           console.log("Index: Database initialization result:", result);
-          setInitializationStep("Database connected successfully");
+          setInitializationStep("SQLite database connected successfully");
         } catch (error) {
           console.error("Index: Failed to initialize database:", error);
           setInitializationError(error instanceof Error ? error.message : "Unknown database error");
@@ -62,14 +60,14 @@ export function useDatabaseInitialization() {
           setIsInitializing(false);
         }
       } else {
-        console.log("Index: Database already initialized or not configured");
+        console.log("Index: Database already initialized");
         setIsInitializing(false);
       }
     };
     
     console.log("Index: Running database initialization effect");
     initDb();
-  }, [databaseConfigured]);
+  }, []);
   
   return {
     databaseConfigured,

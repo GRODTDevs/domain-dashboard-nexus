@@ -1,79 +1,47 @@
 
-import fs from 'fs';
-import path from 'path';
-import BetterSqlite3 from 'better-sqlite3';
+// This is a simplified SQLite adapter that works without native compilation
+// We'll simulate SQLite functionality using localStorage for browser compatibility
+
 import { updateStorageStatus } from './storage-status';
 
-let db: BetterSqlite3.Database | null = null;
+let db: any = null;
+const tables: Record<string, Array<any>> = {};
 
 // Initialize SQLite database
 export const initializeSqlite = async () => {
   try {
-    console.log("DB: Initializing SQLite database");
+    console.log("DB: Initializing SQLite database (browser compatible version)");
     
-    // Ensure the data directory exists
-    const dataDir = path.join(process.cwd(), 'data');
-    if (!fs.existsSync(dataDir)) {
-      console.log("DB: Creating data directory");
-      fs.mkdirSync(dataDir, { recursive: true });
+    // Create tables
+    tables.users = [];
+    tables.domains = [];
+    tables.files = [];
+    tables.notes = [];
+    tables.seo_analysis = [];
+    
+    // Try to load existing data from localStorage
+    try {
+      const storedTables = localStorage.getItem('sqlite_tables');
+      if (storedTables) {
+        Object.assign(tables, JSON.parse(storedTables));
+        console.log("DB: Loaded tables from localStorage");
+      }
+    } catch (e) {
+      console.warn("DB: Could not load stored tables", e);
     }
     
-    const dbPath = path.join(dataDir, 'database.sqlite');
-    console.log(`DB: Using SQLite database at ${dbPath}`);
-    
-    // Open the database (creates it if it doesn't exist)
-    db = new BetterSqlite3(dbPath, {
-      verbose: console.log
-    });
-    
-    // Create tables if they don't exist
-    db.exec(`
-      CREATE TABLE IF NOT EXISTS users (
-        id TEXT PRIMARY KEY,
-        name TEXT,
-        email TEXT UNIQUE,
-        role TEXT,
-        status TEXT,
-        createdAt TEXT
-      );
-      
-      CREATE TABLE IF NOT EXISTS domains (
-        id TEXT PRIMARY KEY,
-        name TEXT,
-        url TEXT,
-        status TEXT,
-        createdAt TEXT,
-        updatedAt TEXT
-      );
-      
-      CREATE TABLE IF NOT EXISTS files (
-        id TEXT PRIMARY KEY,
-        name TEXT,
-        path TEXT,
-        size INTEGER,
-        type TEXT,
-        createdAt TEXT
-      );
-      
-      CREATE TABLE IF NOT EXISTS notes (
-        id TEXT PRIMARY KEY,
-        content TEXT,
-        createdAt TEXT,
-        updatedAt TEXT
-      );
-      
-      CREATE TABLE IF NOT EXISTS seo_analysis (
-        id TEXT PRIMARY KEY,
-        domainId TEXT,
-        title TEXT,
-        description TEXT,
-        score INTEGER,
-        createdAt TEXT,
-        FOREIGN KEY (domainId) REFERENCES domains (id)
-      );
-    `);
-    
     console.log("DB: SQLite database initialized successfully");
+    
+    // Set our mock DB
+    db = {
+      exec: (sql: string) => console.log("DB: Executing SQL:", sql),
+      prepare: () => ({
+        all: () => [],
+        get: () => null,
+        run: () => ({ changes: 0, lastInsertRowid: 0 })
+      }),
+      close: () => console.log("DB: Closing database")
+    };
     
     // Mark as initialized
     updateStorageStatus({
@@ -94,6 +62,24 @@ export const initializeSqlite = async () => {
   }
 };
 
+// Periodically save tables to localStorage
+const saveTablesDebounced = (() => {
+  let timeoutId: number | null = null;
+  return () => {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+    timeoutId = setTimeout(() => {
+      try {
+        localStorage.setItem('sqlite_tables', JSON.stringify(tables));
+        console.log("DB: Saved tables to localStorage");
+      } catch (e) {
+        console.warn("DB: Could not save tables to localStorage", e);
+      }
+    }, 500) as unknown as number;
+  };
+})();
+
 // Get database instance
 export const getSqliteDb = () => db;
 
@@ -104,12 +90,16 @@ export const getCollection = (tableName: string) => {
     return null;
   }
   
+  // Create table if it doesn't exist
+  if (!tables[tableName]) {
+    tables[tableName] = [];
+  }
+  
   return {
     find: () => ({ 
       toArray: async () => {
         try {
-          const stmt = db!.prepare(`SELECT * FROM ${tableName}`);
-          return stmt.all();
+          return [...tables[tableName]];
         } catch (error) {
           console.error(`DB: Error querying ${tableName}:`, error);
           return [];
@@ -121,11 +111,9 @@ export const getCollection = (tableName: string) => {
         const keys = Object.keys(filter);
         if (keys.length === 0) return null;
         
-        const whereClause = keys.map(key => `${key} = ?`).join(' AND ');
-        const values = keys.map(key => filter[key]);
-        
-        const stmt = db!.prepare(`SELECT * FROM ${tableName} WHERE ${whereClause} LIMIT 1`);
-        return stmt.get(...values) || null;
+        return tables[tableName].find(item => {
+          return keys.every(key => item[key] === filter[key]);
+        }) || null;
       } catch (error) {
         console.error(`DB: Error finding in ${tableName}:`, error);
         return null;
@@ -133,16 +121,9 @@ export const getCollection = (tableName: string) => {
     },
     insertOne: async (doc: any) => {
       try {
-        const keys = Object.keys(doc);
-        const placeholders = keys.map(() => '?').join(', ');
-        const values = keys.map(key => doc[key]);
-        
-        const stmt = db!.prepare(
-          `INSERT INTO ${tableName} (${keys.join(', ')}) VALUES (${placeholders})`
-        );
-        
-        const result = stmt.run(...values);
-        return { insertedId: doc.id || result.lastInsertRowid };
+        tables[tableName].push(doc);
+        saveTablesDebounced();
+        return { insertedId: doc.id };
       } catch (error) {
         console.error(`DB: Error inserting into ${tableName}:`, error);
         throw error;
@@ -154,22 +135,20 @@ export const getCollection = (tableName: string) => {
         if (filterKeys.length === 0) throw new Error("Update filter cannot be empty");
         
         const updateData = update.$set || update;
-        const updateKeys = Object.keys(updateData);
-        
-        const setClause = updateKeys.map(key => `${key} = ?`).join(', ');
-        const whereClause = filterKeys.map(key => `${key} = ?`).join(' AND ');
-        
-        const values = [
-          ...updateKeys.map(key => updateData[key]),
-          ...filterKeys.map(key => filter[key])
-        ];
-        
-        const stmt = db!.prepare(
-          `UPDATE ${tableName} SET ${setClause} WHERE ${whereClause}`
+        const index = tables[tableName].findIndex(item => 
+          filterKeys.every(key => item[key] === filter[key])
         );
         
-        const result = stmt.run(...values);
-        return { matchedCount: result.changes, modifiedCount: result.changes };
+        if (index !== -1) {
+          tables[tableName][index] = { 
+            ...tables[tableName][index],
+            ...updateData
+          };
+          saveTablesDebounced();
+          return { matchedCount: 1, modifiedCount: 1 };
+        }
+        
+        return { matchedCount: 0, modifiedCount: 0 };
       } catch (error) {
         console.error(`DB: Error updating in ${tableName}:`, error);
         throw error;
@@ -180,13 +159,17 @@ export const getCollection = (tableName: string) => {
         const keys = Object.keys(filter);
         if (keys.length === 0) throw new Error("Delete filter cannot be empty");
         
-        const whereClause = keys.map(key => `${key} = ?`).join(' AND ');
-        const values = keys.map(key => filter[key]);
+        const initialLength = tables[tableName].length;
+        tables[tableName] = tables[tableName].filter(item => 
+          !keys.every(key => item[key] === filter[key])
+        );
         
-        const stmt = db!.prepare(`DELETE FROM ${tableName} WHERE ${whereClause} LIMIT 1`);
-        const result = stmt.run(...values);
+        const deletedCount = initialLength - tables[tableName].length;
+        if (deletedCount > 0) {
+          saveTablesDebounced();
+        }
         
-        return { deletedCount: result.changes };
+        return { deletedCount };
       } catch (error) {
         console.error(`DB: Error deleting from ${tableName}:`, error);
         throw error;
@@ -198,7 +181,14 @@ export const getCollection = (tableName: string) => {
 // Close the database connection
 export const closeSqliteDb = () => {
   if (db) {
-    db.close();
+    // Save all tables before closing
+    try {
+      localStorage.setItem('sqlite_tables', JSON.stringify(tables));
+      console.log("DB: Saved tables to localStorage before closing");
+    } catch (e) {
+      console.warn("DB: Could not save tables to localStorage", e);
+    }
+    
     db = null;
     console.log("DB: SQLite connection closed");
   }
