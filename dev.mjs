@@ -26,6 +26,10 @@ function runCommand(command, args, options = {}) {
   return child;
 }
 
+// Check if we need to install dependencies
+const shouldInstallDependencies = !existsSync(path.join(__dirname, 'node_modules')) || 
+                                 require('fs').readdirSync(path.join(__dirname, 'node_modules')).length === 0;
+
 // Check if we need to build first
 const shouldBuild = !existsSync(path.join(__dirname, 'dist', 'index.html'));
 
@@ -33,12 +37,34 @@ const shouldBuild = !existsSync(path.join(__dirname, 'dist', 'index.html'));
 async function startDev() {
   console.log('🚀 Starting development environment...');
 
-  // Build the app if needed
-  if (shouldBuild) {
-    console.log('Building the application first...');
+  // Install dependencies if needed
+  if (shouldInstallDependencies) {
+    console.log('Installing dependencies first...');
     
     try {
-      // Use npm scripts directly since we have a modern Node version now
+      await new Promise((resolve, reject) => {
+        const installProcess = runCommand('npm', ['install']);
+        
+        installProcess.on('close', (code) => {
+          if (code === 0) {
+            console.log('✅ Dependencies installed');
+            resolve();
+          } else {
+            reject(new Error(`Installation failed with code ${code}`));
+          }
+        });
+      });
+    } catch (error) {
+      console.error('❌', error.message);
+      process.exit(1);
+    }
+  }
+
+  // Build the app if needed
+  if (shouldBuild) {
+    console.log('Building the application...');
+    
+    try {
       await new Promise((resolve, reject) => {
         const buildProcess = runCommand('npm', ['run', 'build']);
         

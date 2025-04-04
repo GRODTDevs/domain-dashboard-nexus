@@ -12,8 +12,8 @@ if [ ! -f ".env" ]; then
   echo "⚠️ .env file doesn't exist. Creating a sample one..."
   cat > .env << EOF
 # MongoDB Connection String
-MONGODB_URI=mongodb://localhost:27017/myapp
-VITE_MONGODB_URI=mongodb://localhost:27017/myapp
+MONGODB_URI=mongodb://localhost:27017/fsh
+VITE_MONGODB_URI=mongodb://localhost:27017/fsh
 
 # Application Settings
 PORT=3001
@@ -22,6 +22,21 @@ EOF
   echo "✅ Created .env file with sample values. Please edit it with your actual values."
 else
   echo "✅ .env file exists"
+fi
+
+# Install dependencies if node_modules doesn't exist or is empty
+if [ ! -d "node_modules" ] || [ -z "$(ls -A node_modules 2>/dev/null)" ]; then
+  echo "📦 Installing dependencies..."
+  npm install
+  
+  if [ $? -ne 0 ]; then
+    echo "❌ Dependency installation failed! Aborting."
+    exit 1
+  fi
+  
+  echo "✅ Dependencies installed successfully"
+else
+  echo "✅ Dependencies already installed"
 fi
 
 # Build the application if needed
@@ -35,6 +50,8 @@ if [ ! -d "dist" ] || [ ! -f "dist/index.html" ]; then
   fi
   
   echo "✅ Build completed successfully"
+else
+  echo "✅ Build already exists"
 fi
 
 # Check if server.mjs is already running
