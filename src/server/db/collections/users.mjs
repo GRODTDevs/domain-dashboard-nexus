@@ -21,38 +21,54 @@ export async function initializeUsersCollection(db) {
       console.log('Server: Users collection may already exist:', error.message);
     }
     
-    // Create default admin user with more robust error handling
-    try {
-      const adminResult = await db.collection('users').insertOne({
+    // Create users in a batch operation to ensure atomicity
+    const users = [
+      {
         name: "Admin User",
         email: "admin@example.com",
         role: "admin",
         active: true,
         createdAt: new Date().toISOString(),
         lastLogin: new Date().toISOString()
-      });
-      console.log('Server: Admin user created with ID:', adminResult.insertedId);
-      results.adminUser = adminResult.insertedId;
-    } catch (adminError) {
-      console.error('Server: Error creating admin user:', adminError);
-      results.adminUserError = adminError.message;
-    }
-    
-    // Create default regular user with separate try/catch
-    try {
-      const userResult = await db.collection('users').insertOne({
+      },
+      {
         name: "Regular User",
         email: "user@example.com",
         role: "user",
         active: true,
         createdAt: new Date().toISOString(),
         lastLogin: new Date().toISOString()
-      });
-      console.log('Server: Regular user created with ID:', userResult.insertedId);
-      results.regularUser = userResult.insertedId;
-    } catch (userError) {
-      console.error('Server: Error creating regular user:', userError);
-      results.regularUserError = userError.message;
+      }
+    ];
+
+    try {
+      const insertResult = await db.collection('users').insertMany(users);
+      console.log('Server: Users created successfully:', insertResult.insertedCount);
+      results.insertedCount = insertResult.insertedCount;
+      results.insertedIds = insertResult.insertedIds;
+    } catch (insertError) {
+      console.error('Server: Failed to insert users batch:', insertError);
+      
+      // Fallback to individual inserts if batch insert fails
+      console.log('Server: Attempting individual user inserts as fallback');
+      
+      try {
+        const adminResult = await db.collection('users').insertOne(users[0]);
+        console.log('Server: Admin user created with ID:', adminResult.insertedId);
+        results.adminUser = adminResult.insertedId;
+      } catch (adminError) {
+        console.error('Server: Error creating admin user:', adminError);
+        results.adminUserError = adminError.message;
+      }
+      
+      try {
+        const userResult = await db.collection('users').insertOne(users[1]);
+        console.log('Server: Regular user created with ID:', userResult.insertedId);
+        results.regularUser = userResult.insertedId;
+      } catch (userError) {
+        console.error('Server: Error creating regular user:', userError);
+        results.regularUserError = userError.message;
+      }
     }
     
     // Verify the users were actually created
@@ -60,6 +76,11 @@ export async function initializeUsersCollection(db) {
       const createdUsers = await db.collection('users').countDocuments();
       console.log(`Server: Verified ${createdUsers} users exist in the collection`);
       results.verifiedCount = createdUsers;
+      
+      // Further verification by retrieving users
+      const usersList = await db.collection('users').find({}).toArray();
+      console.log(`Server: Retrieved ${usersList.length} users from collection:`, 
+                  usersList.map(u => ({name: u.name, email: u.email, role: u.role})));
     } catch (verifyError) {
       console.error('Server: Error verifying user count:', verifyError);
     }

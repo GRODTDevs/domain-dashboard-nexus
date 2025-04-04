@@ -39,7 +39,7 @@ const Index = () => {
       const timeoutId = setTimeout(() => {
         console.log("Index: Initialization taking too long, setting timeout flag");
         setLoadTimeout(true);
-      }, 10000); // 10 seconds timeout
+      }, 8000); // 8 seconds timeout instead of 10
       
       return () => clearTimeout(timeoutId);
     }
@@ -56,7 +56,7 @@ const Index = () => {
           
           // Add timeout to prevent hanging
           const timeoutPromise = new Promise((_, reject) => {
-            setTimeout(() => reject(new Error("Database initialization timed out after 10 seconds")), 10000);
+            setTimeout(() => reject(new Error("Database initialization timed out after 8 seconds")), 8000);
           });
           
           const initPromise = initializeStorage();
@@ -89,8 +89,15 @@ const Index = () => {
   // Navigation effect - only run if database is configured
   useEffect(() => {
     if (!isLoading && !isInitializing) {
+      // Always proceed to the login page if we choose to force login
+      if (forceLogin) {
+        console.log("Index: Force login selected, proceeding to login page");
+        navigate("/login", { replace: true });
+        return;
+      }
+      
       // Only navigate once we're sure about auth state and database is configured
-      if ((databaseConfigured && !initializationError) || forceLogin) {
+      if (databaseConfigured && !initializationError) {
         console.log("Index: Navigating based on auth state:", isAuthenticated ? "authenticated" : "not authenticated");
         navigate(isAuthenticated ? "/dashboard" : "/login", { replace: true });
       } else {
@@ -139,19 +146,20 @@ const Index = () => {
               onClick={() => {
                 toast({
                   title: "Proceeding to Login",
-                  description: "Attempting to bypass database checks and proceed to login."
+                  description: "Bypassing database checks and proceeding to login."
                 });
                 setForceLogin(true);
               }}
               variant="secondary"
-              className="bg-yellow-600 text-white hover:bg-yellow-700"
+              className="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2"
             >
-              Skip Database Check & Proceed to Login
+              Skip Database Check & Login
             </Button>
             
             <Button
               onClick={() => setIsDialogOpen(true)}
               variant="outline"
+              className="mt-4"
             >
               Configure MongoDB Connection
             </Button>
@@ -177,6 +185,24 @@ const Index = () => {
       {/* Add the environment debug display */}
       <div className="mt-8">
         <EnvDebugDisplay />
+      </div>
+      
+      {/* Add skip button even during loading to prevent getting stuck */}
+      <div className="mt-4">
+        <Button
+          onClick={() => {
+            toast({
+              title: "Proceeding to Login",
+              description: "Bypassing database checks and proceeding to login."
+            });
+            setForceLogin(true);
+          }}
+          variant="outline"
+          size="sm"
+          className="text-xs"
+        >
+          Skip DB Check & Login
+        </Button>
       </div>
     </div>
   );
