@@ -22,7 +22,7 @@ export default defineConfig(({ mode }) => ({
     },
     proxy: {
       '/api': {
-        target: 'http://localhost:3001',
+        target: process.env.API_PROXY_TARGET || `http://localhost:${process.env.PORT || 3030}`,
         changeOrigin: true,
         secure: false,
         timeout: 60000, // Increase timeout to 60 seconds

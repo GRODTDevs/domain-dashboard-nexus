@@ -5,10 +5,17 @@ import { existsSync, readdirSync } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import net from 'net';
+import dotenv from 'dotenv';
+
+// Load environment variables
+dotenv.config();
 
 // Get the current file path
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// Get port from environment or use default
+const PORT = process.env.PORT || 3030;
 
 // Function to run a command with timeout protection
 function runCommand(command, args, options = {}) {
@@ -150,7 +157,7 @@ async function startDev() {
   }
 
   // Start the backend server first
-  console.log('Starting backend server...');
+  console.log(`Starting backend server on port ${PORT}...`);
   const serverProcess = runCommand('node', ['server.mjs']);
   
   // Wait for the server to start (7 seconds)
@@ -171,14 +178,15 @@ async function startDev() {
       ...process.env, 
       VITE_HOST: '0.0.0.0',
       VITE_CLIENT_PORT: availablePort.toString(),
-      NODE_OPTIONS: '--max-old-space-size=4096' // Increase memory limit
+      NODE_OPTIONS: '--max-old-space-size=4096', // Increase memory limit
+      API_PROXY_TARGET: `http://localhost:${PORT}` // Set API target to match backend port
     }
   });
 
   // Print access info
   console.log('\n✅ Development environment running');
   console.log(`📱 Client: http://localhost:${availablePort}`);
-  console.log('🖥️ Server: Running on port 3001');
+  console.log(`🖥️ Server: Running on port ${PORT}`);
   console.log('Press Ctrl+C to stop');
 
   // Handle process termination

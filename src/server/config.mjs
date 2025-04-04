@@ -27,7 +27,7 @@ MONGODB_URI=mongodb://localhost:27017/myapp
 VITE_MONGODB_URI=mongodb://localhost:27017/myapp
 
 # Application Settings
-PORT=3001
+PORT=3030
 NODE_ENV=development
 `;
 
@@ -53,6 +53,6 @@ if (process.env.MONGODB_URI) {
 }
 
 // Server configuration
-export const DEFAULT_PORT = 3001; // Changed from 3000 to 3001 to match vite proxy config
+export const DEFAULT_PORT = 3030; // Changed from 3001 to 3030
 export const PORT = process.env.PORT || DEFAULT_PORT;
 export const getStaticPath = () => path.join(projectRoot, 'dist');
