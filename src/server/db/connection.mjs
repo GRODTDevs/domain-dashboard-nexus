@@ -84,7 +84,12 @@ export const checkConnectionStatus = async (mongoUri) => {
       return { 
         status: 'ok', 
         connected: true,
-        statusCode: 200
+        statusCode: 200,
+        diagnostics: {
+          clientType: 'MongoDB',
+          dbVersion: await getMongoDbVersion(),
+          dbName: dbName
+        }
       };
     } catch (error) {
       console.error('Server: MongoDB connection test error:', error);
@@ -115,14 +120,47 @@ export const checkConnectionStatus = async (mongoUri) => {
       db = null;
     }
     
+    // Enhance error diagnostics
+    let errorDiagnostics = {};
+    
+    // Try to determine if this is a network connectivity issue or authentication problem
+    if (error.message?.includes('connect ECONNREFUSED') || 
+        error.message?.includes('no primary found') ||
+        error.message?.includes('getaddrinfo')) {
+      errorDiagnostics.type = 'network';
+      errorDiagnostics.suggestion = 'Check if MongoDB server is running and network allows connection';
+    }
+    else if (error.message?.includes('Authentication failed')) {
+      errorDiagnostics.type = 'authentication';
+      errorDiagnostics.suggestion = 'Username or password in connection string may be incorrect';
+    }
+    else if (error.message?.includes('timed out')) {
+      errorDiagnostics.type = 'timeout';
+      errorDiagnostics.suggestion = 'MongoDB server may be overloaded or connection is too slow';
+    }
+    
     return { 
       status: 'error', 
       connected: false, 
       message: error.message || 'Unknown MongoDB connection error',
+      diagnostics: errorDiagnostics,
       statusCode: 500
     };
   }
 };
+
+// Get MongoDB version if available
+async function getMongoDbVersion() {
+  if (!db) return 'unknown';
+  
+  try {
+    const buildInfo = await db.admin().buildInfo();
+    return buildInfo.version || 'unknown';
+  } catch (err) {
+    console.error('Server: Error getting MongoDB version:', err);
+    return 'error';
+  }
+}
 
 // Make the MongoDB client and db available for other modules
 export const getMongoClient = () => mongoClient;

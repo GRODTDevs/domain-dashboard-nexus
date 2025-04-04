@@ -2,7 +2,7 @@
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { checkConnectionStatus } from './db/connection.mjs';
-import { initializeDatabase } from './db/initialization/index.mjs';
+import { initializeDatabase, initializeDatabaseWithDiagnostics } from './db/initialization/index.mjs';
 
 // Get directory name in ESM
 const __filename = fileURLToPath(import.meta.url);
@@ -11,10 +11,21 @@ const projectRoot = path.resolve(__dirname, '..', '..');
 
 // Configure API routes
 export function setupRoutes(app) {
-  // Health check endpoint
+  // Health check endpoint with enhanced diagnostics
   app.get('/api/health', (req, res) => {
     console.log('Server: Health check endpoint called');
-    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+    
+    // Collect system information
+    const systemInfo = {
+      status: 'ok', 
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      memoryUsage: process.memoryUsage(),
+      env: process.env.NODE_ENV || 'not set',
+      hasMongoUri: !!process.env.MONGODB_URI
+    };
+    
+    res.json(systemInfo);
   });
 
   // MongoDB connection status endpoint with timeout protection
@@ -35,7 +46,11 @@ export function setupRoutes(app) {
           status: 'error',
           connected: false,
           message: 'MongoDB connection timed out',
-          statusCode: 500
+          statusCode: 500,
+          diagnostics: {
+            errorType: 'timeout',
+            suggestion: 'Check MongoDB server accessibility and network latency'
+          }
         });
       }
     }, timeoutMs);
@@ -65,13 +80,17 @@ export function setupRoutes(app) {
           status: 'error',
           connected: false,
           message: error.message || 'Unknown connection error',
+          diagnostics: {
+            errorType: error.name,
+            errorDetail: error.message
+          },
           statusCode: 500
         });
       }
     }
   });
 
-  // Database initialization endpoint with timeout protection
+  // Database initialization endpoint with timeout protection and enhanced diagnostics
   app.post('/api/db/init', async (req, res) => {
     console.log('Server: Database initialization endpoint called');
     
@@ -82,7 +101,11 @@ export function setupRoutes(app) {
       console.error('Server: No MongoDB URI available for initialization');
       return res.status(400).json({
         status: 'error',
-        message: 'No MongoDB connection string provided'
+        message: 'No MongoDB connection string provided',
+        diagnostics: {
+          missing: 'connectionString',
+          suggestion: 'Provide a MongoDB connection string in request body or set MONGODB_URI environment variable'
+        }
       });
     }
     
@@ -103,13 +126,18 @@ export function setupRoutes(app) {
         res.status(202).json({
           status: 'partial',
           message: 'Database initialization started but timed out. The application may still work with limited functionality.',
+          diagnostics: {
+            timeoutValue: timeoutMs,
+            suggestion: 'Database operations may be slow. Check MongoDB server performance or increase timeout.'
+          },
           statusCode: 202
         });
       }
     }, timeoutMs);
     
     try {
-      const result = await initializeDatabase(mongoUri);
+      // Use the enhanced initialization function
+      const result = await initializeDatabaseWithDiagnostics(mongoUri);
       
       // Clear the timeout since we got a response
       clearTimeout(timeout);
@@ -143,6 +171,10 @@ export function setupRoutes(app) {
         res.status(500).json({
           status: 'error',
           message: error.message || 'Database initialization failed with unknown error',
+          diagnostics: {
+            errorType: error.name,
+            errorStack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+          },
           statusCode: 500
         });
       }

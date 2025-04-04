@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { HashRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { ProtectedRoute } from "./components/ProtectedRoute";
+import { DiagnosticTool } from "./components/diagnostic-tool";
 import LoginPage from "./pages/login";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
@@ -35,6 +36,7 @@ const App = () => {
           <TooltipProvider>
             <Toaster />
             <Sonner />
+            <DiagnosticTool />
             <Routes>
               {/* Home route - redirects based on auth status */}
               <Route path="/" element={<Index />} />
