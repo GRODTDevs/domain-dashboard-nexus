@@ -40,28 +40,53 @@ export const initializeDatabase = async (mongoUri) => {
     }
     
     // Create all required collections
-    const results = await createRequiredCollections(db);
+    const collectionResults = await createRequiredCollections(db);
+    console.log('Server: Collection creation results:', collectionResults);
+    
+    if (!collectionResults.success) {
+      console.error('Server: Failed to initialize collections properly');
+      return {
+        status: 'partial',
+        message: 'Database initialization completed with errors',
+        statusCode: 207,
+        errors: collectionResults.errors
+      };
+    }
     
     // Verify initialization
     const verificationResult = await verifyInitialization(db);
     
     // If verification successful
     if (verificationResult.success) {
-      console.log('Server: Database initialization completed with basic structure');
+      console.log('Server: Database initialization completed successfully');
       return { 
         status: 'ok', 
-        message: 'Database initialized with basic structure',
+        message: 'Database initialized successfully with all required data',
         collections: verificationResult.collections,
         statusCode: 200
       };
     } 
     
-    // Return success even with partial initialization to prevent hanging
-    console.log('Server: Database initialization completed with partial structure');
+    // Verification failed - try to fix
+    console.log('Server: Verification failed, attempting to fix issues:', verificationResult);
+    
+    // If users are missing, try to create them again
+    if (!verificationResult.usersExist && verificationResult.collections.includes('users')) {
+      console.log('Server: Attempting to create users again...');
+      try {
+        const { initializeUsersCollection } = await import('../collections/users.mjs');
+        await initializeUsersCollection(db);
+        console.log('Server: Users created in recovery attempt');
+      } catch (userError) {
+        console.error('Server: Failed to create users in recovery attempt:', userError);
+      }
+    }
+    
+    // Return partial success to allow app to continue
     return { 
-      status: 'ok', 
-      message: 'Database initialization completed with partial structure',
-      results,
+      status: 'ok',  // Return ok to prevent app from hanging
+      message: 'Database initialization completed with warnings',
+      details: verificationResult,
       statusCode: 200
     };
     
@@ -74,4 +99,4 @@ export const initializeDatabase = async (mongoUri) => {
       statusCode: 500
     };
   }
-};
+}

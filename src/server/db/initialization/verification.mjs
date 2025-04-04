@@ -1,28 +1,45 @@
 
-// Verify the initialization was successful
-export const verifyInitialization = async (db) => {
+// Verify database initialization
+export async function verifyInitialization(db) {
+  console.log('Server: Verifying database initialization...');
+  
   try {
-    const listPromise = db.listCollections().toArray();
-    const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Timeout listing collections')), 3000);
-    });
+    // Check that required collections exist
+    const collections = await db.listCollections().toArray();
+    const collectionNames = collections.map(coll => coll.name);
     
-    const finalCollections = await Promise.race([listPromise, timeoutPromise]);
-    const finalCollectionNames = finalCollections.map(c => c.name);
-    console.log('Server: Final list of collections after initialization:', finalCollectionNames);
+    console.log('Server: Found collections:', collectionNames);
     
-    // Consider initialization successful if we have at least created the _dbinit collection
-    const success = finalCollectionNames.includes('_dbinit');
+    // Define required collections
+    const requiredCollections = ['users', 'domains', 'files', 'notes', 'seoAnalysis'];
+    const missingCollections = requiredCollections.filter(name => !collectionNames.includes(name));
+    
+    // Check if users exist in the users collection (most critical)
+    let usersExist = false;
+    if (collectionNames.includes('users')) {
+      const userCount = await db.collection('users').countDocuments();
+      usersExist = userCount > 0;
+      console.log(`Server: Users collection contains ${userCount} documents`);
+    }
+    
+    // Return verification results
+    const success = missingCollections.length === 0 && usersExist;
+    
+    console.log('Server: Verification complete, success:', success);
     
     return {
       success,
-      collections: finalCollectionNames
+      collections: collectionNames,
+      missingCollections: missingCollections.length > 0 ? missingCollections : null,
+      usersExist,
+      timestamp: new Date().toISOString()
     };
   } catch (error) {
-    console.error('Server: Error listing collections after initialization:', error);
+    console.error('Server: Verification error:', error);
     return {
       success: false,
-      error: error.message
+      error: error.message,
+      timestamp: new Date().toISOString()
     };
   }
-};
+}

@@ -7,15 +7,19 @@ import { EnvDebugDisplay } from "@/components/env-debug-display";
 import { WelcomeScreen } from "@/components/welcome-screen";
 import { getDatabaseConnectionString } from "@/lib/database-config";
 import { LoadingIndicator } from "@/components/loading-indicator";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 
 const Index = () => {
   const { isAuthenticated, isLoading } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [databaseConfigured, setDatabaseConfigured] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
   const [initializationError, setInitializationError] = useState<string | null>(null);
   const [initializationStep, setInitializationStep] = useState("Checking configuration...");
   const [loadTimeout, setLoadTimeout] = useState(false);
+  const [forceLogin, setForceLogin] = useState(false);
   
   console.log("Index: Initial render", { isAuthenticated, isLoading, databaseConfigured, isInitializing });
   
@@ -84,7 +88,7 @@ const Index = () => {
   useEffect(() => {
     if (!isLoading && !isInitializing) {
       // Only navigate once we're sure about auth state and database is configured
-      if (databaseConfigured && !initializationError) {
+      if ((databaseConfigured && !initializationError) || forceLogin) {
         console.log("Index: Navigating based on auth state:", isAuthenticated ? "authenticated" : "not authenticated");
         navigate(isAuthenticated ? "/dashboard" : "/login", { replace: true });
       } else {
@@ -93,7 +97,7 @@ const Index = () => {
     } else {
       console.log("Index: Still initializing or auth state loading, waiting before navigation");
     }
-  }, [isAuthenticated, isLoading, navigate, databaseConfigured, isInitializing, initializationError]);
+  }, [isAuthenticated, isLoading, navigate, databaseConfigured, isInitializing, initializationError, forceLogin]);
   
   // Show welcome screen if database is not configured
   if (!databaseConfigured && !isInitializing) {
@@ -127,6 +131,19 @@ const Index = () => {
               className="px-4 py-2 bg-destructive text-white rounded-md hover:bg-destructive/90"
             >
               Clear Stored Connection & Restart
+            </button>
+            
+            <button
+              onClick={() => {
+                toast({
+                  title: "Proceeding to Login",
+                  description: "Attempting to bypass database checks and proceed to login."
+                });
+                setForceLogin(true);
+              }}
+              className="px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700"
+            >
+              Skip Database Check & Proceed to Login
             </button>
           </div>
           
