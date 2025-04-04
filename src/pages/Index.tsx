@@ -9,6 +9,7 @@ import { getDatabaseConnectionString } from "@/lib/database-config";
 import { LoadingIndicator } from "@/components/loading-indicator";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { DatabaseConnectionDialog } from "@/components/database-connection-dialog";
 
 const Index = () => {
   const { isAuthenticated, isLoading } = useAuth();
@@ -20,6 +21,7 @@ const Index = () => {
   const [initializationStep, setInitializationStep] = useState("Checking configuration...");
   const [loadTimeout, setLoadTimeout] = useState(false);
   const [forceLogin, setForceLogin] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   
   console.log("Index: Initial render", { isAuthenticated, isLoading, databaseConfigured, isInitializing });
   
@@ -115,25 +117,25 @@ const Index = () => {
             Please check your MongoDB connection string and make sure your database is accessible.
           </p>
           <div className="flex flex-col space-y-2">
-            <button 
+            <Button 
               onClick={() => window.location.reload()}
-              className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90"
+              variant="default"
             >
               Try Again
-            </button>
+            </Button>
             
-            <button
+            <Button
               onClick={() => {
                 localStorage.removeItem('mongodb_uri');
                 localStorage.removeItem('mongodb_installed');
                 window.location.reload();
               }}
-              className="px-4 py-2 bg-destructive text-white rounded-md hover:bg-destructive/90"
+              variant="destructive"
             >
               Clear Stored Connection & Restart
-            </button>
+            </Button>
             
-            <button
+            <Button
               onClick={() => {
                 toast({
                   title: "Proceeding to Login",
@@ -141,10 +143,18 @@ const Index = () => {
                 });
                 setForceLogin(true);
               }}
-              className="px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700"
+              variant="secondary"
+              className="bg-yellow-600 text-white hover:bg-yellow-700"
             >
               Skip Database Check & Proceed to Login
-            </button>
+            </Button>
+            
+            <Button
+              onClick={() => setIsDialogOpen(true)}
+              variant="outline"
+            >
+              Configure MongoDB Connection
+            </Button>
           </div>
           
           {/* Add the environment debug display */}
@@ -152,6 +162,9 @@ const Index = () => {
             <EnvDebugDisplay />
           </div>
         </div>
+        
+        {/* Database connection dialog */}
+        <DatabaseConnectionDialog isOpen={isDialogOpen} onOpenChange={setIsDialogOpen} />
       </div>
     );
   }
