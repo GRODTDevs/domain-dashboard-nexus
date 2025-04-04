@@ -33,17 +33,33 @@ const Index = () => {
     setDatabaseConfigured(!!connectionString);
   }, []);
   
-  // Add a timeout to detect hanging initialization
+  // Add a timeout to detect hanging initialization - now much shorter (4s)
   useEffect(() => {
     if (isInitializing && databaseConfigured) {
       const timeoutId = setTimeout(() => {
         console.log("Index: Initialization taking too long, setting timeout flag");
         setLoadTimeout(true);
-      }, 8000); // 8 seconds timeout instead of 10
+      }, 4000); // Reduced to 4 seconds
       
       return () => clearTimeout(timeoutId);
     }
   }, [isInitializing, databaseConfigured]);
+  
+  // Auto-skip to login after a timeout regardless of database status
+  useEffect(() => {
+    const autoSkipTimeout = setTimeout(() => {
+      if (!forceLogin && isInitializing) {
+        console.log("Index: Auto-forcing login after timeout");
+        toast({
+          title: "Proceeding to Login",
+          description: "Database initialization taking too long. Proceeding to login."
+        });
+        setForceLogin(true);
+      }
+    }, 6000); // 6 seconds max wait time
+    
+    return () => clearTimeout(autoSkipTimeout);
+  }, [forceLogin, isInitializing, toast]);
   
   // Effect to initialize database
   useEffect(() => {
@@ -54,9 +70,9 @@ const Index = () => {
           setInitializationStep("Establishing database connection...");
           console.log("Index: Attempting to initialize database connection");
           
-          // Add timeout to prevent hanging
+          // Add timeout to prevent hanging - significantly reduced
           const timeoutPromise = new Promise((_, reject) => {
-            setTimeout(() => reject(new Error("Database initialization timed out after 8 seconds")), 8000);
+            setTimeout(() => reject(new Error("Database initialization timed out after 4s")), 4000);
           });
           
           const initPromise = initializeStorage();
@@ -123,25 +139,9 @@ const Index = () => {
           <p className="text-sm text-muted-foreground mb-4">
             Please check your MongoDB connection string and make sure your database is accessible.
           </p>
+          
+          {/* Make the Skip DB Check button much more prominent */}
           <div className="flex flex-col space-y-2">
-            <Button 
-              onClick={() => window.location.reload()}
-              variant="default"
-            >
-              Try Again
-            </Button>
-            
-            <Button
-              onClick={() => {
-                localStorage.removeItem('mongodb_uri');
-                localStorage.removeItem('mongodb_installed');
-                window.location.reload();
-              }}
-              variant="destructive"
-            >
-              Clear Stored Connection & Restart
-            </Button>
-            
             <Button
               onClick={() => {
                 toast({
@@ -150,16 +150,41 @@ const Index = () => {
                 });
                 setForceLogin(true);
               }}
-              variant="secondary"
-              className="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2"
+              variant="default"
+              size="lg"
+              className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-4 text-lg animate-pulse"
             >
-              Skip Database Check & Login
+              Skip Database Check & Proceed to Login
             </Button>
+            
+            <div className="flex space-x-2 mt-2">
+              <Button 
+                onClick={() => window.location.reload()}
+                variant="outline"
+                size="sm"
+                className="flex-1"
+              >
+                Try Again
+              </Button>
+              
+              <Button
+                onClick={() => {
+                  localStorage.removeItem('mongodb_uri');
+                  localStorage.removeItem('mongodb_installed');
+                  window.location.reload();
+                }}
+                variant="outline"
+                size="sm"
+                className="flex-1"
+              >
+                Clear Connection & Restart
+              </Button>
+            </div>
             
             <Button
               onClick={() => setIsDialogOpen(true)}
-              variant="outline"
-              className="mt-4"
+              variant="secondary"
+              className="mt-2"
             >
               Configure MongoDB Connection
             </Button>
@@ -177,7 +202,7 @@ const Index = () => {
     );
   }
   
-  // Render loading state with debug display
+  // Render loading state with debug display and prominent skip button
   return (
     <div className="h-screen flex flex-col items-center justify-center font-raleway">
       <LoadingIndicator step={initializationStep} />
@@ -187,8 +212,8 @@ const Index = () => {
         <EnvDebugDisplay />
       </div>
       
-      {/* Add skip button even during loading to prevent getting stuck */}
-      <div className="mt-4">
+      {/* Add prominent skip button during loading to prevent getting stuck */}
+      <div className="mt-6">
         <Button
           onClick={() => {
             toast({
@@ -197,11 +222,11 @@ const Index = () => {
             });
             setForceLogin(true);
           }}
-          variant="outline"
-          size="sm"
-          className="text-xs"
+          variant="default"
+          size="lg"
+          className="px-8 py-6 text-lg font-medium animate-pulse"
         >
-          Skip DB Check & Login
+          Skip DB Check & Login Now
         </Button>
       </div>
     </div>
