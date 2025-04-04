@@ -189,16 +189,31 @@ async function initializeCollections() {
     { name: 'domains', sampleDocs: [] }
   ];
   
-  // First ensure all collections exist (force creation)
+  // First force create each collection with a creation document
   for (const col of collectionsToCreate) {
     try {
-      console.log(`Server: Creating ${col.name} collection`);
-      // This will create the collection if it doesn't exist
-      await db.createCollection(col.name);
-      console.log(`Server: Collection ${col.name} created successfully`);
+      console.log(`Server: Force creating ${col.name} collection with creation document`);
+      // Insert a creation document to force collection creation
+      await db.collection(col.name).insertOne({
+        _id: `${col.name}_collection_creation`,
+        _creationMarker: true,
+        collectionName: col.name,
+        createdAt: new Date().toISOString()
+      });
+      console.log(`Server: ${col.name} collection created successfully with creation document`);
       results[`${col.name}Created`] = true;
+      
+      // Immediately verify the collection was created
+      const collExists = await db.listCollections({ name: col.name }).hasNext();
+      console.log(`Server: Verified ${col.name} collection exists: ${collExists}`);
+      
+      if (!collExists) {
+        console.error(`Server: Failed to create ${col.name} collection despite no error`);
+        results[`${col.name}Error`] = "Collection not created despite successful document insertion";
+      }
     } catch (error) {
       console.error(`Server: Error creating ${col.name} collection:`, error.message);
+      
       // If collection already exists, this is fine
       if (error.code === 48) { // NamespaceExists error code
         console.log(`Server: Collection ${col.name} already exists`);
@@ -209,6 +224,7 @@ async function initializeCollections() {
     }
   }
   
+  // Now add actual data to the collections
   try {
     // Users collection with admin user
     console.log('Server: Adding users to users collection');

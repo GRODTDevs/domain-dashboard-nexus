@@ -43,7 +43,7 @@ export function setupRoutes(app) {
       }
     }
     
-    console.log('Server: Final DB status result:', result);
+    console.log('Server: DB status result:', result);
     res.status(result.statusCode).json(result);
   });
 
@@ -67,7 +67,7 @@ export function setupRoutes(app) {
     
     // Try multiple times if needed - MongoDB Atlas can be slow to create databases
     let retries = 0;
-    const maxRetries = 5; // Increased max retries for initialization
+    const maxRetries = 7; // Increased max retries for initialization
     let result = null;
     
     while (retries < maxRetries) {
@@ -83,7 +83,7 @@ export function setupRoutes(app) {
       if (retries < maxRetries) {
         console.log(`Server: Retrying database initialization, attempt ${retries + 1} of ${maxRetries}`);
         // Wait longer between retries for initialization
-        const waitTime = 3000 + (retries * 1000); // Increasing wait time with each retry
+        const waitTime = 3000 + (retries * 2000); // Increasing wait time with each retry
         console.log(`Server: Waiting ${waitTime}ms before next attempt`);
         await new Promise(resolve => setTimeout(resolve, waitTime));
       }
