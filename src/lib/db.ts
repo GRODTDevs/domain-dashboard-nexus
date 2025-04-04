@@ -1,4 +1,3 @@
-
 // MongoDB Database Management
 
 import { getDatabaseConnectionString, isDatabaseInstalled as configIsDatabaseInstalled, setDatabaseInstalled } from './database-config';
@@ -31,18 +30,26 @@ export const initializeStorage = async () => {
       try {
         console.log("DB: Running in browser environment, checking connection via API");
         
-        // Check connection status
+        // Check connection status with timeout
         console.log(`DB: Calling /api/db/status with URI parameter`);
-        const statusResponse = await fetch(`/api/db/status?uri=${encodeURIComponent(mongoUri)}`);
+        const statusPromise = fetch(`/api/db/status?uri=${encodeURIComponent(mongoUri)}`, {
+          signal: AbortSignal.timeout(10000) // 10 seconds timeout
+        });
+        
+        const statusResponse = await statusPromise;
         
         if (!statusResponse.ok) {
           console.error(`DB: Connection status check failed with status ${statusResponse.status}`);
           const data = await statusResponse.json();
-          throw new Error(data.message || 'Failed to connect to MongoDB');
+          throw new Error(data.message || `Failed to connect to MongoDB with status ${statusResponse.status}`);
         }
         
         const statusData = await statusResponse.json();
         console.log("DB: MongoDB connection test result:", statusData);
+        
+        if (!statusData.connected) {
+          throw new Error("Could not connect to MongoDB. Server reported failure.");
+        }
         
         // Check if database is installed
         const isInstalled = configIsDatabaseInstalled();
@@ -51,20 +58,39 @@ export const initializeStorage = async () => {
         if (!isInstalled) {
           console.log("DB: Database not installed, initializing...");
           
-          // Initialize the database
+          // Initialize the database with retry logic
           console.log("DB: Calling /api/db/init endpoint");
-          const initResponse = await fetch('/api/db/init', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ uri: mongoUri })
-          });
+          let initResponse = null;
+          let attempts = 0;
+          const maxAttempts = 3;
           
-          if (!initResponse.ok) {
-            console.error(`DB: Database initialization failed with status ${initResponse.status}`);
-            const data = await initResponse.json();
-            throw new Error(data.message || 'Failed to initialize MongoDB');
+          while (attempts < maxAttempts) {
+            try {
+              initResponse = await fetch('/api/db/init', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ uri: mongoUri }),
+                signal: AbortSignal.timeout(15000) // 15 seconds timeout
+              });
+              
+              break; // If successful, exit the retry loop
+            } catch (error) {
+              attempts++;
+              if (attempts >= maxAttempts) {
+                throw error; // If max attempts reached, propagate the error
+              }
+              console.log(`DB: Init attempt ${attempts} failed, retrying...`);
+              // Wait before next attempt
+              await new Promise(resolve => setTimeout(resolve, 2000));
+            }
+          }
+          
+          if (!initResponse || !initResponse.ok) {
+            console.error(`DB: Database initialization failed with status ${initResponse?.status}`);
+            const data = await initResponse?.json();
+            throw new Error(data?.message || 'Failed to initialize MongoDB database');
           }
           
           const initData = await initResponse.json();
@@ -80,8 +106,8 @@ export const initializeStorage = async () => {
         }
         
       } catch (error) {
-        // Log error but don't throw - we'll assume it's configured properly based on connection string
-        console.warn("DB: Could not fully initialize MongoDB:", error);
+        console.error("DB: Could not initialize MongoDB:", error);
+        throw error; // Rethrow to make sure we handle it properly in the UI
       }
     } else {
       console.log("DB: Running in server-side environment, skipping API calls");
@@ -98,7 +124,7 @@ export const initializeStorage = async () => {
     console.error("DB: Failed to initialize MongoDB connection:", error);
     storageStatus.error = error instanceof Error ? error.message : "Unknown error";
     storageStatus.initialized = false;
-    return false;
+    throw error; // Rethrow to make sure we handle it properly in the calling code
   }
 };
 

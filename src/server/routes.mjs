@@ -28,11 +28,21 @@ export function setupRoutes(app) {
     let result = null;
     
     while (retries < maxRetries) {
-      result = await checkConnectionStatus(mongoUri);
-      console.log(`Server: DB status check attempt ${retries + 1} result:`, result);
-      
-      if (result.status === 'ok') {
-        break;
+      try {
+        result = await checkConnectionStatus(mongoUri);
+        console.log(`Server: DB status check attempt ${retries + 1} result:`, result);
+        
+        if (result.status === 'ok') {
+          break;
+        }
+      } catch (error) {
+        console.error(`Server: DB status check error on attempt ${retries + 1}:`, error);
+        result = {
+          status: 'error',
+          connected: false,
+          message: error.message || 'Unknown connection error',
+          statusCode: 500
+        };
       }
       
       retries++;
@@ -44,7 +54,7 @@ export function setupRoutes(app) {
     }
     
     console.log('Server: DB status result:', result);
-    res.status(result.statusCode).json(result);
+    res.status(result.statusCode || 500).json(result);
   });
 
   // Database initialization endpoint
@@ -67,29 +77,38 @@ export function setupRoutes(app) {
     
     // Try multiple times if needed - MongoDB Atlas can be slow to create databases
     let retries = 0;
-    const maxRetries = 7; // Increased max retries for initialization
+    const maxRetries = 5; // Reduced max retries but made them more robust
     let result = null;
     
     while (retries < maxRetries) {
-      console.log(`Server: Database initialization attempt ${retries + 1} of ${maxRetries}`);
-      result = await initializeDatabase(mongoUri);
-      console.log(`Server: Database initialization attempt ${retries + 1} result status:`, result.status);
-      
-      if (result.status === 'ok') {
-        break;
+      try {
+        console.log(`Server: Database initialization attempt ${retries + 1} of ${maxRetries}`);
+        result = await initializeDatabase(mongoUri);
+        console.log(`Server: Database initialization attempt ${retries + 1} result status:`, result.status);
+        
+        if (result.status === 'ok') {
+          break;
+        }
+      } catch (error) {
+        console.error(`Server: Database initialization error on attempt ${retries + 1}:`, error);
+        result = {
+          status: 'error',
+          message: error.message || 'Failed to initialize MongoDB',
+          statusCode: 500
+        };
       }
       
       retries++;
       if (retries < maxRetries) {
         console.log(`Server: Retrying database initialization, attempt ${retries + 1} of ${maxRetries}`);
-        // Wait longer between retries for initialization
-        const waitTime = 3000 + (retries * 2000); // Increasing wait time with each retry
+        // Wait longer between retries for initialization (exponential backoff)
+        const waitTime = 2000 * Math.pow(1.5, retries); // Increases with each retry
         console.log(`Server: Waiting ${waitTime}ms before next attempt`);
         await new Promise(resolve => setTimeout(resolve, waitTime));
       }
     }
     
-    if (result.status === 'ok') {
+    if (result && result.status === 'ok') {
       // Set a global flag that database is initialized
       console.log('Server: Setting MONGODB_INSTALLED flag to true');
       process.env.MONGODB_INSTALLED = 'true';
@@ -98,7 +117,11 @@ export function setupRoutes(app) {
     }
     
     console.log('Server: Final database initialization result:', result);
-    res.status(result.statusCode).json(result);
+    res.status(result?.statusCode || 500).json(result || {
+      status: 'error',
+      message: 'Database initialization failed with unknown error',
+      statusCode: 500
+    });
   });
 
   // For any other routes, send the index.html file

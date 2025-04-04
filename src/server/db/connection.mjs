@@ -10,7 +10,6 @@ export const checkConnectionStatus = async (mongoUri) => {
   console.log('Server: MongoDB status endpoint called');
   try {
     console.log(`Server: Checking MongoDB connection with URI ${mongoUri ? 'provided' : 'missing'}`);
-    console.log('Server: MongoDB URI first 10 chars:', mongoUri ? mongoUri.substring(0, 10) + '...' : 'undefined');
     
     if (!mongoUri) {
       console.error('Server: No MongoDB connection string provided');
@@ -25,54 +24,76 @@ export const checkConnectionStatus = async (mongoUri) => {
     // Log connection attempt (without exposing sensitive data)
     console.log('Server: Attempting to connect to MongoDB...');
     
-    // Try to connect to MongoDB if not already connected
-    if (!mongoClient) {
-      console.log('Server: Creating new MongoDB client');
-      mongoClient = new MongoClient(mongoUri);
-      await mongoClient.connect();
+    // Create a new client for testing connection
+    const testClient = new MongoClient(mongoUri, {
+      serverSelectionTimeoutMS: 5000, // 5 second timeout for server selection
+      connectTimeoutMS: 10000,        // 10 second timeout for connection
+      socketTimeoutMS: 30000,         // 30 second timeout for socket operations
+    });
+    
+    try {
+      // Try to connect with timeout protection
+      await testClient.connect();
       
       // Use "fsh" as the database name
       let dbName = 'fsh';
       console.log(`Server: Using database name: ${dbName}`);
       
-      db = mongoClient.db(dbName);
+      // Test the connection with a simple operation
+      const testDb = testClient.db(dbName);
+      await testDb.command({ ping: 1 });
       
-      // Explicitly check if database exists by inserting a ping document
-      // MongoDB Atlas creates databases lazily on first insert
-      try {
-        console.log('Server: Testing database existence with ping document');
-        await db.collection('_ping').insertOne({ 
-          timestamp: new Date().toISOString(),
-          message: 'Database existence check'
+      console.log('Server: MongoDB connection test successful');
+      
+      // Close the test client
+      await testClient.close();
+      
+      // Now set up the actual client for subsequent operations
+      if (!mongoClient) {
+        console.log('Server: Creating new MongoDB client for ongoing use');
+        mongoClient = new MongoClient(mongoUri, {
+          serverSelectionTimeoutMS: 30000,  // Longer timeouts for the persistent client
+          connectTimeoutMS: 30000,
+          socketTimeoutMS: 60000,
         });
-        console.log('Server: Successfully created database with ping');
-      } catch (dbTestError) {
-        console.log('Server: Database ping test error:', dbTestError.message);
-        // Non-fatal error, continue
+        
+        await mongoClient.connect();
+        db = mongoClient.db(dbName);
+        console.log(`Server: MongoDB connected successfully to database: ${dbName}`);
+      } else {
+        console.log('Server: Using existing MongoDB client');
       }
       
-      console.log(`Server: MongoDB connected successfully to database: ${dbName}`);
-    } else {
-      console.log('Server: Using existing MongoDB client');
+      return { 
+        status: 'ok', 
+        connected: true,
+        statusCode: 200
+      };
+    } catch (error) {
+      console.error('Server: MongoDB connection test error:', error);
+      
+      // Close the test client if it was created
+      if (testClient) {
+        try {
+          await testClient.close();
+        } catch (closeError) {
+          console.error('Server: Error closing test client:', closeError);
+        }
+      }
+      
+      throw error;
     }
-    
-    // Check if connection is alive with a ping
-    console.log('Server: Pinging MongoDB to verify connection');
-    await db.command({ ping: 1 });
-    console.log('Server: MongoDB ping successful');
-    
-    return { 
-      status: 'ok', 
-      connected: true,
-      statusCode: 200
-    };
   } catch (error) {
     console.error('Server: MongoDB connection error:', error);
     
     // Close the client if connection failed
     if (mongoClient) {
       console.log('Server: Closing MongoDB client due to connection error');
-      await mongoClient.close();
+      try {
+        await mongoClient.close();
+      } catch (closeError) {
+        console.error('Server: Error closing client:', closeError);
+      }
       mongoClient = null;
       db = null;
     }
@@ -80,7 +101,7 @@ export const checkConnectionStatus = async (mongoUri) => {
     return { 
       status: 'error', 
       connected: false, 
-      message: error.message,
+      message: error.message || 'Unknown MongoDB connection error',
       statusCode: 500
     };
   }
@@ -89,3 +110,20 @@ export const checkConnectionStatus = async (mongoUri) => {
 // Make the MongoDB client and db available for other modules
 export const getMongoClient = () => mongoClient;
 export const getDb = () => db;
+
+// Close the MongoDB connection - useful for cleanup
+export const closeMongoConnection = async () => {
+  if (mongoClient) {
+    try {
+      await mongoClient.close();
+      mongoClient = null;
+      db = null;
+      console.log('Server: MongoDB connection closed');
+      return true;
+    } catch (error) {
+      console.error('Server: Error closing MongoDB connection:', error);
+      return false;
+    }
+  }
+  return true;
+};
