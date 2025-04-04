@@ -21,8 +21,29 @@ export function setupRoutes(app) {
     // First check environment variable, then query parameter
     const mongoUri = process.env.MONGODB_URI || req.query.uri;
     console.log('Server: DB status check with URI available:', !!mongoUri);
-    const result = await checkConnectionStatus(mongoUri);
-    console.log('Server: DB status result:', result);
+    
+    // Try multiple times if needed - MongoDB Atlas can be slow to create databases
+    let retries = 0;
+    const maxRetries = 3;
+    let result = null;
+    
+    while (retries < maxRetries) {
+      result = await checkConnectionStatus(mongoUri);
+      console.log(`Server: DB status check attempt ${retries + 1} result:`, result);
+      
+      if (result.status === 'ok') {
+        break;
+      }
+      
+      retries++;
+      if (retries < maxRetries) {
+        console.log(`Server: Retrying connection check, attempt ${retries + 1} of ${maxRetries}`);
+        // Wait a bit before retrying
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    }
+    
+    console.log('Server: Final DB status result:', result);
     res.status(result.statusCode).json(result);
   });
 
@@ -43,8 +64,28 @@ export function setupRoutes(app) {
     }
     
     console.log('Server: Starting database initialization with URI available:', !!mongoUri);
-    const result = await initializeDatabase(mongoUri);
-    console.log('Server: Database initialization result:', result);
+    
+    // Try multiple times if needed - MongoDB Atlas can be slow to create databases
+    let retries = 0;
+    const maxRetries = 3;
+    let result = null;
+    
+    while (retries < maxRetries) {
+      console.log(`Server: Database initialization attempt ${retries + 1} of ${maxRetries}`);
+      result = await initializeDatabase(mongoUri);
+      console.log(`Server: Database initialization attempt ${retries + 1} result:`, result);
+      
+      if (result.status === 'ok') {
+        break;
+      }
+      
+      retries++;
+      if (retries < maxRetries) {
+        console.log(`Server: Retrying database initialization, attempt ${retries + 1} of ${maxRetries}`);
+        // Wait a bit before retrying
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
+    }
     
     if (result.status === 'ok') {
       // Set a global flag that database is initialized
@@ -52,6 +93,7 @@ export function setupRoutes(app) {
       process.env.MONGODB_INSTALLED = 'true';
     }
     
+    console.log('Server: Final database initialization result:', result);
     res.status(result.statusCode).json(result);
   });
 

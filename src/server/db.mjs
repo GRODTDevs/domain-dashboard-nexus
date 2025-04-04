@@ -36,6 +36,21 @@ export const checkConnectionStatus = async (mongoUri) => {
       console.log(`Server: Using database name: ${dbName}`);
       
       db = mongoClient.db(dbName);
+      
+      // Explicitly check if database exists by inserting a ping document
+      // MongoDB Atlas creates databases lazily on first insert
+      try {
+        console.log('Server: Testing database existence with ping document');
+        await db.collection('_ping').insertOne({ 
+          timestamp: new Date().toISOString(),
+          message: 'Database existence check'
+        });
+        console.log('Server: Successfully created database with ping');
+      } catch (dbTestError) {
+        console.log('Server: Database ping test error:', dbTestError.message);
+        // Non-fatal error, continue
+      }
+      
       console.log(`Server: MongoDB connected successfully to database: ${dbName}`);
     } else {
       console.log('Server: Using existing MongoDB client');
@@ -104,29 +119,33 @@ export const initializeDatabase = async (mongoUri) => {
     
     console.log('Server: Initializing database collections...');
     
-    // Create collections if they don't exist
+    // IMPORTANT: For MongoDB Atlas, we need to force database creation by inserting a document first
+    console.log('Server: Force creating database with initialization marker');
+    await db.collection('_dbinit').insertOne({ 
+      initialized: true,
+      timestamp: new Date().toISOString() 
+    });
+    console.log('Server: Database creation forced with _dbinit collection');
+    
+    // Now check what collections exist
     const collections = await db.listCollections().toArray();
     const collectionNames = collections.map(c => c.name);
-    console.log('Server: Existing collections:', collectionNames);
+    console.log('Server: Existing collections after force creation:', collectionNames);
     
     // Initialize collections
-    await initializeCollections(collectionNames);
+    const initResult = await initializeCollections();
+    console.log('Server: All collections initialized:', initResult);
     
-    // Force creation of the database by inserting a document if no collections exist
-    if (collections.length === 0) {
-      console.log('Server: No collections found, forcing database creation with a temporary collection');
-      await db.collection('_dbinit').insertOne({ 
-        initialized: true, 
-        timestamp: new Date().toISOString() 
-      });
-      console.log('Server: Temporary collection created to ensure database exists');
-    }
+    // List collections again to verify creation
+    const updatedCollections = await db.listCollections().toArray();
+    const updatedCollectionNames = updatedCollections.map(c => c.name);
+    console.log('Server: Collections after initialization:', updatedCollectionNames);
     
     console.log('Server: Database initialization completed successfully');
     return { 
       status: 'ok', 
       message: 'Database initialized successfully',
-      collections: await db.listCollections().toArray(),
+      collections: updatedCollectionNames,
       statusCode: 200
     };
     
@@ -142,13 +161,13 @@ export const initializeDatabase = async (mongoUri) => {
 };
 
 // Helper function to initialize collections
-async function initializeCollections(collectionNames) {
+async function initializeCollections() {
   console.log('Server: Starting collection initialization');
+  const results = {};
   
-  // Users collection with admin user
-  if (!collectionNames.includes('users')) {
+  try {
+    // Users collection with admin user
     console.log('Server: Creating users collection');
-    await db.createCollection('users');
     
     // Create default admin user
     const adminResult = await db.collection('users').insertOne({
@@ -160,6 +179,7 @@ async function initializeCollections(collectionNames) {
       lastLogin: new Date().toISOString()
     });
     console.log('Server: Admin user created with ID:', adminResult.insertedId);
+    results.adminUser = adminResult.insertedId;
     
     // Create default regular user
     const userResult = await db.collection('users').insertOne({
@@ -171,43 +191,66 @@ async function initializeCollections(collectionNames) {
       lastLogin: new Date().toISOString()
     });
     console.log('Server: Regular user created with ID:', userResult.insertedId);
+    results.regularUser = userResult.insertedId;
     
     console.log('Server: Users collection created with admin and regular users');
-  } else {
-    console.log('Server: Users collection already exists');
+  } catch (error) {
+    console.error('Server: Error creating users collection:', error);
+    results.usersError = error.message;
   }
   
-  // Files collection for storing file metadata
-  if (!collectionNames.includes('files')) {
+  try {
+    // Files collection for storing file metadata
     console.log('Server: Creating files collection');
-    await db.createCollection('files');
-    console.log('Server: Files collection created');
-  } else {
-    console.log('Server: Files collection already exists');
+    const fileResult = await db.collection('files').insertOne({
+      name: "sample-file.txt",
+      type: "text/plain",
+      size: 1024,
+      createdAt: new Date().toISOString(),
+      path: "/uploads/sample-file.txt"
+    });
+    console.log('Server: Files collection created with sample file');
+    results.fileCollection = fileResult.insertedId;
+  } catch (error) {
+    console.error('Server: Error creating files collection:', error);
+    results.filesError = error.message;
   }
   
-  // Notes collection
-  if (!collectionNames.includes('notes')) {
+  try {
+    // Notes collection
     console.log('Server: Creating notes collection');
-    await db.createCollection('notes');
-    console.log('Server: Notes collection created');
-  } else {
-    console.log('Server: Notes collection already exists');
+    const noteResult = await db.collection('notes').insertOne({
+      title: "Sample Note",
+      content: "This is a sample note for testing",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    });
+    console.log('Server: Notes collection created with sample note');
+    results.noteCollection = noteResult.insertedId;
+  } catch (error) {
+    console.error('Server: Error creating notes collection:', error);
+    results.notesError = error.message;
   }
   
-  // SEO analysis collection
-  if (!collectionNames.includes('seo_analysis')) {
+  try {
+    // SEO analysis collection
     console.log('Server: Creating seo_analysis collection');
-    await db.createCollection('seo_analysis');
-    console.log('Server: SEO analysis collection created');
-  } else {
-    console.log('Server: SEO analysis collection already exists');
+    const seoResult = await db.collection('seo_analysis').insertOne({
+      url: "https://example.com",
+      score: 85,
+      recommendations: ["Add meta description", "Optimize images"],
+      createdAt: new Date().toISOString()
+    });
+    console.log('Server: SEO analysis collection created with sample analysis');
+    results.seoCollection = seoResult.insertedId;
+  } catch (error) {
+    console.error('Server: Error creating SEO analysis collection:', error);
+    results.seoError = error.message;
   }
   
-  // Domains collection if it doesn't exist
-  if (!collectionNames.includes('domains')) {
+  try {
+    // Domains collection
     console.log('Server: Creating domains collection');
-    await db.createCollection('domains');
     
     // Create some sample domains
     const domainsResult = await db.collection('domains').insertMany([
@@ -285,12 +328,14 @@ async function initializeCollections(collectionNames) {
     ]);
     
     console.log(`Server: Domains collection created with ${domainsResult.insertedCount} sample domains`);
-  } else {
-    console.log('Server: Domains collection already exists');
+    results.domainsCollection = domainsResult.insertedCount;
+  } catch (error) {
+    console.error('Server: Error creating domains collection:', error);
+    results.domainsError = error.message;
   }
   
-  // Also update the src/server/routes.mjs to ensure initialization endpoint is called with more debug info
   console.log('Server: Finished initializing collections');
+  return results;
 }
 
 // Make the MongoDB client and db available for other modules
