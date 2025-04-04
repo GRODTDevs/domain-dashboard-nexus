@@ -13,9 +13,13 @@ const Index = () => {
   const [databaseConfigured, setDatabaseConfigured] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
   
+  console.log("Index: Initial render", { isAuthenticated, isLoading, databaseConfigured, isInitializing });
+  
   // Effect to check if database is configured
   useEffect(() => {
+    console.log("Index: Checking database configuration");
     const connectionString = getDatabaseConnectionString();
+    console.log("Index: Database connection string available:", !!connectionString);
     setDatabaseConfigured(!!connectionString);
   }, []);
   
@@ -43,12 +47,14 @@ const Index = () => {
   
   // Navigation effect - only run if database is configured
   useEffect(() => {
-    if (!isLoading && !isInitializing && databaseConfigured) {
+    if (!isLoading && !isInitializing) {
       // Only navigate once we're sure about auth state and database is configured
-      console.log("Index: Navigating based on auth state:", isAuthenticated ? "authenticated" : "not authenticated");
-      navigate(isAuthenticated ? "/dashboard" : "/login", { replace: true });
-    } else if (!isLoading && !isInitializing) {
-      console.log("Index: Database not configured, showing welcome screen");
+      if (databaseConfigured) {
+        console.log("Index: Navigating based on auth state:", isAuthenticated ? "authenticated" : "not authenticated");
+        navigate(isAuthenticated ? "/dashboard" : "/login", { replace: true });
+      } else {
+        console.log("Index: Database not configured, showing welcome screen");
+      }
     } else {
       console.log("Index: Still initializing or auth state loading, waiting before navigation");
     }

@@ -9,7 +9,7 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "0.0.0.0", // Explicitly bind to all interfaces
     port: 8080,
-    strictPort: false, // Allow Vite to find next available port
+    strictPort: false, // Allow Vite to find next available port if 8080 is in use
     cors: true,
     hmr: {
       clientPort: process.env.VITE_CLIENT_PORT ? Number(process.env.VITE_CLIENT_PORT) : undefined, // Allow dynamic port

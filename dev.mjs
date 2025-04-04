@@ -38,33 +38,51 @@ const shouldBuild = !existsSync(path.join(__dirname, 'dist', 'index.html'));
 function isPortAvailable(port) {
   return new Promise((resolve) => {
     const server = net.createServer();
-    server.once('error', () => {
+    
+    server.once('error', (err) => {
       // Port is not available
+      console.log(`Port ${port} is not available:`, err.message);
       resolve(false);
     });
+    
     server.once('listening', () => {
       // Port is available
       server.close();
       resolve(true);
     });
-    server.listen(port);
+    
+    try {
+      server.listen(port);
+    } catch (err) {
+      console.log(`Error checking port ${port}:`, err.message);
+      resolve(false);
+    }
   });
 }
 
 // Function to find an available port
-async function findAvailablePort(startPort, maxAttempts = 10) {
+async function findAvailablePort(startPort, maxAttempts = 20) {
+  console.log(`Looking for an available port starting from ${startPort}...`);
+  
   let port = startPort;
   
   for (let attempts = 0; attempts < maxAttempts; attempts++) {
+    console.log(`Checking if port ${port} is available (attempt ${attempts + 1}/${maxAttempts})...`);
     const available = await isPortAvailable(port);
+    
     if (available) {
+      console.log(`Port ${port} is available!`);
       return port;
     }
+    
+    console.log(`Port ${port} is not available. Trying next port...`);
     port++;
   }
   
-  // If no port is found, return null
-  return null;
+  // If no port is found, return a random port in a higher range
+  const fallbackPort = 9000 + Math.floor(Math.random() * 1000);
+  console.log(`Could not find an available port after ${maxAttempts} attempts. Using fallback port ${fallbackPort}`);
+  return fallbackPort;
 }
 
 // Start the development environment
@@ -131,7 +149,7 @@ async function startDev() {
     }
   }
 
-  // Start the backend server first and wait a bit to ensure it's running
+  // Start the backend server first
   console.log('Starting backend server...');
   const serverProcess = runCommand('node', ['server.mjs']);
   
@@ -144,41 +162,24 @@ async function startDev() {
   console.log('Finding an available port for the development server...');
   const availablePort = await findAvailablePort(8080);
   
-  if (!availablePort) {
-    console.error('❌ Failed to find an available port after 10 attempts. Please free up ports in the range 8080-8089.');
-    process.exit(1);
-  }
-  
-  console.log(`✅ Found available port: ${availablePort}`);
-
   // Start the development server using Vite directly with the available port
   console.log(`Starting frontend development server on port ${availablePort}...`);
   
-  // Run vite with the available port
+  // Run vite with the available port and increased memory allocation
   const clientProcess = runCommand('npx', ['vite', '--host', '0.0.0.0', '--port', availablePort], {
     env: { 
       ...process.env, 
       VITE_HOST: '0.0.0.0',
       VITE_CLIENT_PORT: availablePort.toString(),
-      DEBUG: 'vite:*', // Enable debug logging
       NODE_OPTIONS: '--max-old-space-size=4096' // Increase memory limit
     }
   });
 
-  // Set a timeout to check if the development server is running
-  const devServerTimeout = setTimeout(() => {
-    console.log('\n⚠️ Development server is taking longer than expected to start...');
-    console.log('If this continues, try:');
-    console.log('1. Checking network connectivity');
-    console.log('2. Verifying port configuration');
-    console.log('3. Checking for errors in Vite configuration');
-    console.log(`4. Manually running "npx vite --host 0.0.0.0 --port ${availablePort}" in another terminal\n`);
-  }, 15000); // 15 second initial warning
-
-  // Clear the timeout if the process exits
-  clientProcess.on('close', () => {
-    clearTimeout(devServerTimeout);
-  });
+  // Print access info
+  console.log('\n✅ Development environment running');
+  console.log(`📱 Client: http://localhost:${availablePort}`);
+  console.log('🖥️ Server: Running on port 3001');
+  console.log('Press Ctrl+C to stop');
 
   // Handle process termination
   process.on('SIGINT', () => {
@@ -187,11 +188,6 @@ async function startDev() {
     serverProcess.kill();
     process.exit(0);
   });
-
-  console.log('✅ Development environment running');
-  console.log(`📱 Client: http://localhost:${availablePort}`);
-  console.log('🖥️ Server: Running on port 3001 or higher');
-  console.log('Press Ctrl+C to stop');
 }
 
 // Start the development process
