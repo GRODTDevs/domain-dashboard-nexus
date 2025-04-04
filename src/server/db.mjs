@@ -112,6 +112,16 @@ export const initializeDatabase = async (mongoUri) => {
     // Initialize collections
     await initializeCollections(collectionNames);
     
+    // Force creation of the database by inserting a document if no collections exist
+    if (collections.length === 0) {
+      console.log('Server: No collections found, forcing database creation with a temporary collection');
+      await db.collection('_dbinit').insertOne({ 
+        initialized: true, 
+        timestamp: new Date().toISOString() 
+      });
+      console.log('Server: Temporary collection created to ensure database exists');
+    }
+    
     console.log('Server: Database initialization completed successfully');
     return { 
       status: 'ok', 
@@ -133,13 +143,15 @@ export const initializeDatabase = async (mongoUri) => {
 
 // Helper function to initialize collections
 async function initializeCollections(collectionNames) {
+  console.log('Server: Starting collection initialization');
+  
   // Users collection with admin user
   if (!collectionNames.includes('users')) {
     console.log('Server: Creating users collection');
     await db.createCollection('users');
     
     // Create default admin user
-    await db.collection('users').insertOne({
+    const adminResult = await db.collection('users').insertOne({
       name: "Admin User",
       email: "admin@example.com",
       role: "admin",
@@ -147,9 +159,10 @@ async function initializeCollections(collectionNames) {
       createdAt: new Date().toISOString(),
       lastLogin: new Date().toISOString()
     });
+    console.log('Server: Admin user created with ID:', adminResult.insertedId);
     
     // Create default regular user
-    await db.collection('users').insertOne({
+    const userResult = await db.collection('users').insertOne({
       name: "Regular User",
       email: "user@example.com",
       role: "user",
@@ -157,6 +170,7 @@ async function initializeCollections(collectionNames) {
       createdAt: new Date().toISOString(),
       lastLogin: new Date().toISOString()
     });
+    console.log('Server: Regular user created with ID:', userResult.insertedId);
     
     console.log('Server: Users collection created with admin and regular users');
   } else {
@@ -196,7 +210,7 @@ async function initializeCollections(collectionNames) {
     await db.createCollection('domains');
     
     // Create some sample domains
-    await db.collection('domains').insertMany([
+    const domainsResult = await db.collection('domains').insertMany([
       {
         name: "example.com",
         registrar: "GoDaddy",
@@ -270,10 +284,13 @@ async function initializeCollections(collectionNames) {
       }
     ]);
     
-    console.log('Server: Domains collection created with sample data');
+    console.log(`Server: Domains collection created with ${domainsResult.insertedCount} sample domains`);
   } else {
     console.log('Server: Domains collection already exists');
   }
+  
+  // Also update the src/server/routes.mjs to ensure initialization endpoint is called with more debug info
+  console.log('Server: Finished initializing collections');
 }
 
 // Make the MongoDB client and db available for other modules

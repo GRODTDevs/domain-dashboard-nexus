@@ -20,7 +20,9 @@ export function setupRoutes(app) {
   app.get('/api/db/status', async (req, res) => {
     // First check environment variable, then query parameter
     const mongoUri = process.env.MONGODB_URI || req.query.uri;
+    console.log('Server: DB status check with URI available:', !!mongoUri);
     const result = await checkConnectionStatus(mongoUri);
+    console.log('Server: DB status result:', result);
     res.status(result.statusCode).json(result);
   });
 
@@ -40,8 +42,9 @@ export function setupRoutes(app) {
       });
     }
     
-    console.log('Server: Starting database initialization');
+    console.log('Server: Starting database initialization with URI available:', !!mongoUri);
     const result = await initializeDatabase(mongoUri);
+    console.log('Server: Database initialization result:', result);
     
     if (result.status === 'ok') {
       // Set a global flag that database is initialized
