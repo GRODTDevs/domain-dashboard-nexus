@@ -24,16 +24,21 @@ export const checkConnectionStatus = async (mongoUri) => {
     // Log connection attempt (without exposing sensitive data)
     console.log('Server: Attempting to connect to MongoDB...');
     
-    // Create a new client for testing connection
+    // Create a new client for testing connection with shorter timeouts
     const testClient = new MongoClient(mongoUri, {
-      serverSelectionTimeoutMS: 5000, // 5 second timeout for server selection
-      connectTimeoutMS: 10000,        // 10 second timeout for connection
-      socketTimeoutMS: 30000,         // 30 second timeout for socket operations
+      serverSelectionTimeoutMS: 2000, // 2 second timeout for server selection (reduced from 5s)
+      connectTimeoutMS: 5000,        // 5 second timeout for connection (reduced from 10s)
+      socketTimeoutMS: 10000,         // 10 second timeout for socket operations (reduced from 30s)
     });
     
     try {
       // Try to connect with timeout protection
-      await testClient.connect();
+      const connectPromise = testClient.connect();
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('MongoDB connection timed out')), 7000);
+      });
+      
+      await Promise.race([connectPromise, timeoutPromise]);
       
       // Use "fsh" as the database name
       let dbName = 'fsh';
@@ -52,9 +57,9 @@ export const checkConnectionStatus = async (mongoUri) => {
       if (!mongoClient) {
         console.log('Server: Creating new MongoDB client for ongoing use');
         mongoClient = new MongoClient(mongoUri, {
-          serverSelectionTimeoutMS: 30000,  // Longer timeouts for the persistent client
-          connectTimeoutMS: 30000,
-          socketTimeoutMS: 60000,
+          serverSelectionTimeoutMS: 10000,  // Shorter timeouts for the persistent client (reduced from 30s)
+          connectTimeoutMS: 10000,         // (reduced from 30s)
+          socketTimeoutMS: 20000,         // (reduced from 60s)
         });
         
         await mongoClient.connect();

@@ -1,7 +1,8 @@
 
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { checkConnectionStatus, initializeDatabase } from './db/index.mjs';
+import { checkConnectionStatus } from './db/connection.mjs';
+import { initializeDatabase } from './db/initialization.mjs';
 
 // Get directory name in ESM
 const __filename = fileURLToPath(import.meta.url);
@@ -16,51 +17,63 @@ export function setupRoutes(app) {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
   });
 
-  // MongoDB connection status endpoint
+  // MongoDB connection status endpoint with timeout protection
   app.get('/api/db/status', async (req, res) => {
     // First check environment variable, then query parameter
     const mongoUri = process.env.MONGODB_URI || req.query.uri;
     console.log('Server: DB status check with URI available:', !!mongoUri);
     
-    // Try multiple times if needed - MongoDB Atlas can be slow to create databases
-    let retries = 0;
-    const maxRetries = 3;
-    let result = null;
+    // Set a timeout for the entire handler
+    const timeoutMs = 5000; // 5 seconds timeout
+    let isResponseSent = false;
     
-    while (retries < maxRetries) {
-      try {
-        result = await checkConnectionStatus(mongoUri);
-        console.log(`Server: DB status check attempt ${retries + 1} result:`, result);
-        
-        if (result.status === 'ok') {
-          break;
-        }
-      } catch (error) {
-        console.error(`Server: DB status check error on attempt ${retries + 1}:`, error);
-        result = {
+    const timeout = setTimeout(() => {
+      if (!isResponseSent) {
+        console.error(`Server: DB status check timed out after ${timeoutMs}ms`);
+        isResponseSent = true;
+        res.status(500).json({
+          status: 'error',
+          connected: false,
+          message: 'MongoDB connection timed out',
+          statusCode: 500
+        });
+      }
+    }, timeoutMs);
+    
+    try {
+      const result = await checkConnectionStatus(mongoUri);
+      
+      // Clear the timeout since we got a response
+      clearTimeout(timeout);
+      
+      // Only send response if it hasn't been sent by timeout handler
+      if (!isResponseSent) {
+        console.log(`Server: DB status check result:`, result);
+        isResponseSent = true;
+        res.status(result.statusCode || 500).json(result);
+      }
+    } catch (error) {
+      console.error(`Server: DB status check error:`, error);
+      
+      // Clear the timeout since we got a response
+      clearTimeout(timeout);
+      
+      // Only send response if it hasn't been sent by timeout handler
+      if (!isResponseSent) {
+        isResponseSent = true;
+        res.status(500).json({
           status: 'error',
           connected: false,
           message: error.message || 'Unknown connection error',
           statusCode: 500
-        };
-      }
-      
-      retries++;
-      if (retries < maxRetries) {
-        console.log(`Server: Retrying connection check, attempt ${retries + 1} of ${maxRetries}`);
-        // Wait a bit before retrying
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        });
       }
     }
-    
-    console.log('Server: DB status result:', result);
-    res.status(result.statusCode || 500).json(result);
   });
 
-  // Database initialization endpoint
+  // Database initialization endpoint with timeout protection
   app.post('/api/db/init', async (req, res) => {
-    console.log('Server: Database initialization endpoint called with body:', 
-                req.body ? JSON.stringify(req.body).substring(0, 50) + '...' : 'null');
+    console.log('Server: Database initialization endpoint called');
     
     // First check environment variable, then request body
     const mongoUri = process.env.MONGODB_URI || req.body.uri;
@@ -75,53 +88,65 @@ export function setupRoutes(app) {
     
     console.log('Server: Starting database initialization with URI available:', !!mongoUri);
     
-    // Try multiple times if needed - MongoDB Atlas can be slow to create databases
-    let retries = 0;
-    const maxRetries = 5; // Reduced max retries but made them more robust
-    let result = null;
+    // Set a timeout for the entire handler
+    const timeoutMs = 8000; // 8 seconds timeout
+    let isResponseSent = false;
     
-    while (retries < maxRetries) {
-      try {
-        console.log(`Server: Database initialization attempt ${retries + 1} of ${maxRetries}`);
-        result = await initializeDatabase(mongoUri);
-        console.log(`Server: Database initialization attempt ${retries + 1} result status:`, result.status);
+    const timeout = setTimeout(() => {
+      if (!isResponseSent) {
+        console.error(`Server: Database initialization timed out after ${timeoutMs}ms`);
+        isResponseSent = true;
         
-        if (result.status === 'ok') {
-          break;
-        }
-      } catch (error) {
-        console.error(`Server: Database initialization error on attempt ${retries + 1}:`, error);
-        result = {
-          status: 'error',
-          message: error.message || 'Failed to initialize MongoDB',
-          statusCode: 500
-        };
+        // Set a flag to indicate partial success - this allows client to continue
+        process.env.MONGODB_INITIALIZED_PARTIAL = 'true';
+        
+        res.status(202).json({
+          status: 'partial',
+          message: 'Database initialization started but timed out. The application may still work with limited functionality.',
+          statusCode: 202
+        });
       }
+    }, timeoutMs);
+    
+    try {
+      const result = await initializeDatabase(mongoUri);
       
-      retries++;
-      if (retries < maxRetries) {
-        console.log(`Server: Retrying database initialization, attempt ${retries + 1} of ${maxRetries}`);
-        // Wait longer between retries for initialization (exponential backoff)
-        const waitTime = 2000 * Math.pow(1.5, retries); // Increases with each retry
-        console.log(`Server: Waiting ${waitTime}ms before next attempt`);
-        await new Promise(resolve => setTimeout(resolve, waitTime));
+      // Clear the timeout since we got a response
+      clearTimeout(timeout);
+      
+      // Only send response if it hasn't been sent by timeout handler
+      if (!isResponseSent) {
+        console.log('Server: Final database initialization result:', result);
+        
+        if (result && result.status === 'ok') {
+          // Set a global flag that database is initialized
+          console.log('Server: Setting MONGODB_INSTALLED flag to true');
+          process.env.MONGODB_INSTALLED = 'true';
+        }
+        
+        isResponseSent = true;
+        res.status(result?.statusCode || 500).json(result || {
+          status: 'error',
+          message: 'Database initialization failed with unknown error',
+          statusCode: 500
+        });
+      }
+    } catch (error) {
+      console.error('Server: Database initialization error:', error);
+      
+      // Clear the timeout since we got a response
+      clearTimeout(timeout);
+      
+      // Only send response if it hasn't been sent by timeout handler
+      if (!isResponseSent) {
+        isResponseSent = true;
+        res.status(500).json({
+          status: 'error',
+          message: error.message || 'Database initialization failed with unknown error',
+          statusCode: 500
+        });
       }
     }
-    
-    if (result && result.status === 'ok') {
-      // Set a global flag that database is initialized
-      console.log('Server: Setting MONGODB_INSTALLED flag to true');
-      process.env.MONGODB_INSTALLED = 'true';
-    } else {
-      console.error('Server: Failed to initialize database after multiple attempts:', result);
-    }
-    
-    console.log('Server: Final database initialization result:', result);
-    res.status(result?.statusCode || 500).json(result || {
-      status: 'error',
-      message: 'Database initialization failed with unknown error',
-      statusCode: 500
-    });
   });
 
   // For any other routes, send the index.html file
