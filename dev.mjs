@@ -9,7 +9,7 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Function to run a command
+// Function to run a command with timeout protection
 function runCommand(command, args, options = {}) {
   console.log(`Running command: ${command} ${args.join(' ')}`);
   
@@ -45,7 +45,14 @@ async function startDev() {
       await new Promise((resolve, reject) => {
         const installProcess = runCommand('npm', ['install']);
         
+        const timeout = setTimeout(() => {
+          console.error('❌ Dependency installation timed out after 5 minutes');
+          installProcess.kill();
+          reject(new Error('Installation timed out'));
+        }, 300000); // 5 minute timeout
+        
         installProcess.on('close', (code) => {
+          clearTimeout(timeout);
           if (code === 0) {
             console.log('✅ Dependencies installed');
             resolve();
@@ -68,7 +75,14 @@ async function startDev() {
       await new Promise((resolve, reject) => {
         const buildProcess = runCommand('npm', ['run', 'build']);
         
+        const timeout = setTimeout(() => {
+          console.error('❌ Build process timed out after 5 minutes');
+          buildProcess.kill();
+          reject(new Error('Build timed out'));
+        }, 300000); // 5 minute timeout
+        
         buildProcess.on('close', (code) => {
+          clearTimeout(timeout);
           if (code === 0) {
             console.log('✅ Build completed');
             resolve();
@@ -87,13 +101,33 @@ async function startDev() {
   console.log('Starting backend server...');
   const serverProcess = runCommand('node', ['server.mjs']);
   
-  // Wait for the server to start (2 seconds)
-  await new Promise(resolve => setTimeout(resolve, 2000));
+  // Wait for the server to start (4 seconds)
+  console.log('Waiting for backend server to start...');
+  await new Promise(resolve => setTimeout(resolve, 4000));
   console.log('Backend server should be running now');
 
-  // Start the development server using npm script
+  // Start the development server using Vite directly for better logging
   console.log('Starting frontend development server...');
-  const clientProcess = runCommand('npm', ['run', 'dev']);
+  console.log('Setting VITE_HOST=0.0.0.0 to allow external network access');
+  
+  const clientProcess = runCommand('npx', ['vite', '--host', '0.0.0.0'], {
+    env: { ...process.env, VITE_HOST: '0.0.0.0' }
+  });
+
+  // Set a timeout to check if the development server is running
+  const devServerTimeout = setTimeout(() => {
+    console.log('\n⚠️ Development server is taking longer than expected to start...');
+    console.log('If this continues, try:');
+    console.log('1. Checking network connectivity');
+    console.log('2. Verifying port 8080 is available');
+    console.log('3. Checking for errors in Vite configuration');
+    console.log('4. Manually running "npm run dev" in another terminal\n');
+  }, 15000); // 15 second warning
+
+  // Clear the timeout if the process exits
+  clientProcess.on('close', () => {
+    clearTimeout(devServerTimeout);
+  });
 
   // Handle process termination
   process.on('SIGINT', () => {
@@ -105,7 +139,7 @@ async function startDev() {
 
   console.log('✅ Development environment running');
   console.log('📱 Client: http://localhost:8080');
-  console.log('🖥️ Server: Running on port 3001');
+  console.log('🖥️ Server: Running on port 3001 or higher');
   console.log('Press Ctrl+C to stop');
 }
 
