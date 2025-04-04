@@ -101,17 +101,22 @@ async function startDev() {
   console.log('Starting backend server...');
   const serverProcess = runCommand('node', ['server.mjs']);
   
-  // Wait for the server to start (4 seconds)
+  // Wait for the server to start (5 seconds)
   console.log('Waiting for backend server to start...');
-  await new Promise(resolve => setTimeout(resolve, 4000));
+  await new Promise(resolve => setTimeout(resolve, 5000));
   console.log('Backend server should be running now');
 
-  // Start the development server using Vite directly for better logging
+  // Start the development server using Vite directly for better diagnostics
   console.log('Starting frontend development server...');
   console.log('Setting VITE_HOST=0.0.0.0 to allow external network access');
   
-  const clientProcess = runCommand('npx', ['vite', '--host', '0.0.0.0'], {
-    env: { ...process.env, VITE_HOST: '0.0.0.0' }
+  // Run vite with debug logging enabled
+  const clientProcess = runCommand('npx', ['vite', '--host', '0.0.0.0', '--debug'], {
+    env: { 
+      ...process.env, 
+      VITE_HOST: '0.0.0.0',
+      DEBUG: 'vite:*' // Enable debug logging
+    }
   });
 
   // Set a timeout to check if the development server is running
@@ -121,8 +126,23 @@ async function startDev() {
     console.log('1. Checking network connectivity');
     console.log('2. Verifying port 8080 is available');
     console.log('3. Checking for errors in Vite configuration');
-    console.log('4. Manually running "npm run dev" in another terminal\n');
-  }, 15000); // 15 second warning
+    console.log('4. Manually running "npx vite" in another terminal\n');
+    
+    // Add a secondary timeout for extended hanging
+    setTimeout(() => {
+      console.log('\n❌ Development server may be stuck. Possible causes:');
+      console.log('- Port 8080 might be in use by another application');
+      console.log('- Network interface binding issues');
+      console.log('- Memory constraints');
+      console.log('\nTrying to check port availability...');
+      
+      const checkPortProcess = runCommand('lsof', ['-i', ':8080']);
+      
+      // Don't exit, let the user decide what to do
+      console.log('\nYou can press Ctrl+C to stop and try manually running:');
+      console.log('PORT=8081 npx vite --host\n');
+    }, 15000); // After 15 more seconds
+  }, 15000); // 15 second initial warning
 
   // Clear the timeout if the process exits
   clientProcess.on('close', () => {

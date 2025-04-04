@@ -7,8 +7,15 @@ import { componentTagger } from "lovable-tagger";
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
   server: {
-    host: "::",
+    host: "0.0.0.0", // Explicitly bind to all interfaces
     port: 8080,
+    strictPort: true, // Fail if port is not available
+    hmr: {
+      clientPort: 8080 // Force client to use this port for HMR
+    },
+    watch: {
+      usePolling: true, // Use polling for file watching (more reliable in some environments)
+    }
   },
   base: './', // Set base to relative path for subfolder deployment
   plugins: [
@@ -40,5 +47,7 @@ export default defineConfig(({ mode }) => ({
   // Server-side specific configuration - will be used by Node.js
   ssr: {
     noExternal: ['mongodb'],
-  }
+  },
+  // Enable more detailed logging
+  logLevel: 'info',
 }));

@@ -7,10 +7,16 @@ import { componentTagger } from "lovable-tagger";
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
   server: {
-    host: "::",
+    host: "0.0.0.0", // Explicitly bind to all interfaces
     port: 8080,
-    strictPort: false,
+    strictPort: true, // Fail if port is not available
     cors: true,
+    hmr: {
+      clientPort: 8080 // Force client to use this port for HMR
+    },
+    watch: {
+      usePolling: true, // Use polling for file watching (more reliable in some environments)
+    },
     proxy: {
       '/api': {
         target: 'http://localhost:3001',
@@ -59,4 +65,6 @@ export default defineConfig(({ mode }) => ({
   optimizeDeps: {
     exclude: ['mongodb'], // Exclude mongodb from optimization
   },
+  // Enable more detailed logging
+  logLevel: 'info',
 }));
