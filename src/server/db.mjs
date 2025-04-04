@@ -132,20 +132,35 @@ export const initializeDatabase = async (mongoUri) => {
     const collectionNames = collections.map(c => c.name);
     console.log('Server: Existing collections after force creation:', collectionNames);
     
-    // Initialize collections
+    // Initialize collections one by one
+    console.log('Server: Starting individual collection initialization');
     const initResult = await initializeCollections();
-    console.log('Server: All collections initialized:', initResult);
+    console.log('Server: All collections initialized with results:', initResult);
     
-    // List collections again to verify creation
-    const updatedCollections = await db.listCollections().toArray();
-    const updatedCollectionNames = updatedCollections.map(c => c.name);
-    console.log('Server: Collections after initialization:', updatedCollectionNames);
+    // Verify collections were created
+    const verifyCollections = await db.listCollections().toArray();
+    const verifyCollectionNames = verifyCollections.map(c => c.name);
+    console.log('Server: Collections after initialization:', verifyCollectionNames);
+    
+    // Check if expected collections were created
+    const expectedCollections = ['users', 'files', 'notes', 'seo_analysis', 'domains'];
+    const missingCollections = expectedCollections.filter(name => !verifyCollectionNames.includes(name));
+    
+    if (missingCollections.length > 0) {
+      console.error('Server: Some collections were not created:', missingCollections);
+      return {
+        status: 'error',
+        message: `Database initialization incomplete. Missing collections: ${missingCollections.join(', ')}`,
+        collections: verifyCollectionNames,
+        statusCode: 500
+      };
+    }
     
     console.log('Server: Database initialization completed successfully');
     return { 
       status: 'ok', 
       message: 'Database initialized successfully',
-      collections: updatedCollectionNames,
+      collections: verifyCollectionNames,
       statusCode: 200
     };
     
@@ -165,9 +180,38 @@ async function initializeCollections() {
   console.log('Server: Starting collection initialization');
   const results = {};
   
+  // Create collections one by one with verification
+  const collectionsToCreate = [
+    { name: 'users', sampleDocs: [] },
+    { name: 'files', sampleDocs: [] },
+    { name: 'notes', sampleDocs: [] },
+    { name: 'seo_analysis', sampleDocs: [] },
+    { name: 'domains', sampleDocs: [] }
+  ];
+  
+  // First ensure all collections exist (force creation)
+  for (const col of collectionsToCreate) {
+    try {
+      console.log(`Server: Creating ${col.name} collection`);
+      // This will create the collection if it doesn't exist
+      await db.createCollection(col.name);
+      console.log(`Server: Collection ${col.name} created successfully`);
+      results[`${col.name}Created`] = true;
+    } catch (error) {
+      console.error(`Server: Error creating ${col.name} collection:`, error.message);
+      // If collection already exists, this is fine
+      if (error.code === 48) { // NamespaceExists error code
+        console.log(`Server: Collection ${col.name} already exists`);
+        results[`${col.name}Created`] = true;
+      } else {
+        results[`${col.name}Error`] = error.message;
+      }
+    }
+  }
+  
   try {
     // Users collection with admin user
-    console.log('Server: Creating users collection');
+    console.log('Server: Adding users to users collection');
     
     // Create default admin user
     const adminResult = await db.collection('users').insertOne({
@@ -201,7 +245,7 @@ async function initializeCollections() {
   
   try {
     // Files collection for storing file metadata
-    console.log('Server: Creating files collection');
+    console.log('Server: Adding sample data to files collection');
     const fileResult = await db.collection('files').insertOne({
       name: "sample-file.txt",
       type: "text/plain",
@@ -218,7 +262,7 @@ async function initializeCollections() {
   
   try {
     // Notes collection
-    console.log('Server: Creating notes collection');
+    console.log('Server: Adding sample data to notes collection');
     const noteResult = await db.collection('notes').insertOne({
       title: "Sample Note",
       content: "This is a sample note for testing",
@@ -234,7 +278,7 @@ async function initializeCollections() {
   
   try {
     // SEO analysis collection
-    console.log('Server: Creating seo_analysis collection');
+    console.log('Server: Adding sample data to seo_analysis collection');
     const seoResult = await db.collection('seo_analysis').insertOne({
       url: "https://example.com",
       score: 85,
@@ -250,7 +294,7 @@ async function initializeCollections() {
   
   try {
     // Domains collection
-    console.log('Server: Creating domains collection');
+    console.log('Server: Adding sample data to domains collection');
     
     // Create some sample domains
     const domainsResult = await db.collection('domains').insertMany([
@@ -334,7 +378,7 @@ async function initializeCollections() {
     results.domainsError = error.message;
   }
   
-  console.log('Server: Finished initializing collections');
+  console.log('Server: Finished initializing collections with results:', results);
   return results;
 }
 

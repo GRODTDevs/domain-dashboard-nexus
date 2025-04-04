@@ -67,13 +67,13 @@ export function setupRoutes(app) {
     
     // Try multiple times if needed - MongoDB Atlas can be slow to create databases
     let retries = 0;
-    const maxRetries = 3;
+    const maxRetries = 5; // Increased max retries for initialization
     let result = null;
     
     while (retries < maxRetries) {
       console.log(`Server: Database initialization attempt ${retries + 1} of ${maxRetries}`);
       result = await initializeDatabase(mongoUri);
-      console.log(`Server: Database initialization attempt ${retries + 1} result:`, result);
+      console.log(`Server: Database initialization attempt ${retries + 1} result status:`, result.status);
       
       if (result.status === 'ok') {
         break;
@@ -82,8 +82,10 @@ export function setupRoutes(app) {
       retries++;
       if (retries < maxRetries) {
         console.log(`Server: Retrying database initialization, attempt ${retries + 1} of ${maxRetries}`);
-        // Wait a bit before retrying
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        // Wait longer between retries for initialization
+        const waitTime = 3000 + (retries * 1000); // Increasing wait time with each retry
+        console.log(`Server: Waiting ${waitTime}ms before next attempt`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
       }
     }
     
@@ -91,6 +93,8 @@ export function setupRoutes(app) {
       // Set a global flag that database is initialized
       console.log('Server: Setting MONGODB_INSTALLED flag to true');
       process.env.MONGODB_INSTALLED = 'true';
+    } else {
+      console.error('Server: Failed to initialize database after multiple attempts:', result);
     }
     
     console.log('Server: Final database initialization result:', result);
