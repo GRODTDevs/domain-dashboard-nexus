@@ -9,10 +9,10 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "0.0.0.0", // Explicitly bind to all interfaces
     port: 8080,
-    strictPort: true, // Fail if port is not available
+    strictPort: false, // Allow Vite to find next available port
     cors: true,
     hmr: {
-      clientPort: 8080, // Force client to use this port for HMR
+      clientPort: process.env.VITE_CLIENT_PORT ? Number(process.env.VITE_CLIENT_PORT) : undefined, // Allow dynamic port
       host: '0.0.0.0', // Ensure HMR works on all interfaces
       protocol: 'ws', // Use WebSocket protocol for HMR
       timeout: 60000, // Longer timeout for slower connections

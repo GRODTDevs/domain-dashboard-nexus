@@ -4,6 +4,7 @@ import { spawn } from 'child_process';
 import { existsSync, readdirSync } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import net from 'net';
 
 // Get the current file path
 const __filename = fileURLToPath(import.meta.url);
@@ -32,6 +33,39 @@ const shouldInstallDependencies = !existsSync(path.join(__dirname, 'node_modules
 
 // Check if we need to build first
 const shouldBuild = !existsSync(path.join(__dirname, 'dist', 'index.html'));
+
+// Function to check if a port is available
+function isPortAvailable(port) {
+  return new Promise((resolve) => {
+    const server = net.createServer();
+    server.once('error', () => {
+      // Port is not available
+      resolve(false);
+    });
+    server.once('listening', () => {
+      // Port is available
+      server.close();
+      resolve(true);
+    });
+    server.listen(port);
+  });
+}
+
+// Function to find an available port
+async function findAvailablePort(startPort, maxAttempts = 10) {
+  let port = startPort;
+  
+  for (let attempts = 0; attempts < maxAttempts; attempts++) {
+    const available = await isPortAvailable(port);
+    if (available) {
+      return port;
+    }
+    port++;
+  }
+  
+  // If no port is found, return null
+  return null;
+}
 
 // Start the development environment
 async function startDev() {
@@ -106,40 +140,27 @@ async function startDev() {
   await new Promise(resolve => setTimeout(resolve, 7000));
   console.log('Backend server should be running now');
 
-  // Check if port 8080 is already in use
-  console.log('Checking if port 8080 is available...');
-  try {
-    const checkPortProcess = spawn('lsof', ['-i', ':8080'], { stdio: 'pipe' });
-    let portData = '';
-    
-    checkPortProcess.stdout.on('data', (data) => {
-      portData += data.toString();
-    });
-    
-    await new Promise((resolve) => {
-      checkPortProcess.on('close', (code) => {
-        if (code === 0 && portData.trim()) {
-          console.log('⚠️ Port 8080 is already in use. Will try to use a different port.');
-        } else {
-          console.log('✅ Port 8080 appears to be available');
-        }
-        resolve();
-      });
-    });
-  } catch (error) {
-    console.log('Unable to check port availability:', error.message);
-  }
-
-  // Start the development server using Vite directly for better diagnostics
-  console.log('Starting frontend development server...');
+  // Find available port starting from 8080
+  console.log('Finding an available port for the development server...');
+  const availablePort = await findAvailablePort(8080);
   
-  // Run vite with debug logging enabled and fallback port
-  const clientProcess = runCommand('npx', ['vite', '--host', '0.0.0.0', '--debug'], {
+  if (!availablePort) {
+    console.error('❌ Failed to find an available port after 10 attempts. Please free up ports in the range 8080-8089.');
+    process.exit(1);
+  }
+  
+  console.log(`✅ Found available port: ${availablePort}`);
+
+  // Start the development server using Vite directly with the available port
+  console.log(`Starting frontend development server on port ${availablePort}...`);
+  
+  // Run vite with the available port
+  const clientProcess = runCommand('npx', ['vite', '--host', '0.0.0.0', '--port', availablePort], {
     env: { 
       ...process.env, 
       VITE_HOST: '0.0.0.0',
+      VITE_CLIENT_PORT: availablePort.toString(),
       DEBUG: 'vite:*', // Enable debug logging
-      VITE_PORT: '8080',
       NODE_OPTIONS: '--max-old-space-size=4096' // Increase memory limit
     }
   });
@@ -149,30 +170,9 @@ async function startDev() {
     console.log('\n⚠️ Development server is taking longer than expected to start...');
     console.log('If this continues, try:');
     console.log('1. Checking network connectivity');
-    console.log('2. Verifying port 8080 is available');
+    console.log('2. Verifying port configuration');
     console.log('3. Checking for errors in Vite configuration');
-    console.log('4. Manually running "npx vite" in another terminal\n');
-    
-    // Add a secondary timeout for extended hanging
-    setTimeout(() => {
-      console.log('\n❌ Development server may be stuck. Possible causes:');
-      console.log('- Port 8080 might be in use by another application');
-      console.log('- Network interface binding issues');
-      console.log('- Memory constraints');
-      console.log('\nTrying to check port availability...');
-      
-      const checkPortProcess = runCommand('lsof', ['-i', ':8080']);
-      
-      // Don't exit, let the user decide what to do
-      console.log('\nYou can press Ctrl+C to stop and try manually running:');
-      console.log('PORT=8081 npx vite --host\n');
-      
-      // Provide a fallback option - try a different port
-      console.log('Attempting to start on a different port (8081)...');
-      runCommand('npx', ['vite', '--host', '0.0.0.0', '--port', '8081'], {
-        env: { ...process.env, VITE_HOST: '0.0.0.0' }
-      });
-    }, 15000); // After 15 more seconds
+    console.log(`4. Manually running "npx vite --host 0.0.0.0 --port ${availablePort}" in another terminal\n`);
   }, 15000); // 15 second initial warning
 
   // Clear the timeout if the process exits
@@ -189,7 +189,7 @@ async function startDev() {
   });
 
   console.log('✅ Development environment running');
-  console.log('📱 Client: http://localhost:8080');
+  console.log(`📱 Client: http://localhost:${availablePort}`);
   console.log('🖥️ Server: Running on port 3001 or higher');
   console.log('Press Ctrl+C to stop');
 }
