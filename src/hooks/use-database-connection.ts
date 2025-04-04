@@ -19,36 +19,49 @@ export function useDatabaseConnection() {
     setConnectionError(null);
     
     try {
-      console.log("Dialog: Connecting with SQLite");
+      console.log("Dialog: Connecting with MongoDB");
       
-      if (connectionString && !connectionString.includes('(Using')) {
-        console.log("Dialog: Validating SQLite connection string");
+      if (connectionString) {
+        console.log("Dialog: Validating MongoDB connection string");
         if (!validateConnectionString(connectionString)) {
-          throw new Error("Invalid SQLite connection string format. Should start with sqlite:// or have .sqlite extension");
+          throw new Error("Invalid MongoDB connection string format. Should start with mongodb:// or mongodb+srv://");
         }
         
-        console.log("Dialog: Setting SQLite database connection string");
+        console.log("Dialog: Setting MongoDB database connection string");
         setDatabaseConnectionString(connectionString);
       }
       
-      console.log("Dialog: Testing SQLite connection");
+      console.log("Dialog: Testing MongoDB connection");
       
-      // For SQLite, we're always successful since it's a local file
+      // Call the backend API to test the connection
+      const response = await fetch('/api/db/status', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok || data.status === 'error') {
+        throw new Error(data.message || "Failed to connect to MongoDB");
+      }
+      
       setDatabaseInstalled(true);
             
       toast({
-        title: "SQLite Connection Configured",
-        description: "Your SQLite database has been successfully configured."
+        title: "MongoDB Connection Configured",
+        description: "Your MongoDB database has been successfully connected."
       });
       
       return true;
     } catch (error) {
-      console.error("Dialog: Error connecting to SQLite database:", error);
+      console.error("Dialog: Error connecting to MongoDB database:", error);
       const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
       setConnectionError(errorMessage);
       
       toast({
-        title: "SQLite Connection Error",
+        title: "MongoDB Connection Error",
         description: errorMessage,
         variant: "destructive",
       });

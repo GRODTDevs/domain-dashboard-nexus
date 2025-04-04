@@ -36,8 +36,7 @@ export const updateStorageStatus = (
   storageStatus = { ...storageStatus, ...status };
 };
 
-// Check if using external database
+// Check if using external database - Always true for MongoDB
 export const isUsingExternalDatabase = () => {
-  // Always using MongoDB
   return true;
 };

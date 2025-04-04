@@ -1,5 +1,5 @@
 
-// Database configuration for SQLite
+// Database configuration for MongoDB
 
 let DATABASE_INSTALLED = false;
 let CONNECTION_STRING = "";
@@ -11,14 +11,14 @@ export const isDatabaseInstalled = (): boolean => {
   console.log('Checking if database is installed...');
   
   // First check environment variable (server-side)
-  if (typeof process !== 'undefined' && process.env && process.env.SQLITE_INSTALLED === 'true') {
+  if (typeof process !== 'undefined' && process.env && process.env.MONGODB_INSTALLED === 'true') {
     console.log('Database is marked as installed via environment variable');
     return true;
   }
   
   // Then check localStorage (client-side)
   try {
-    const installed = localStorage.getItem('sqlite_installed');
+    const installed = localStorage.getItem('mongodb_installed');
     console.log(`Database installation status from localStorage: ${installed}`);
     return installed === 'true';
   } catch (error) {
@@ -35,20 +35,23 @@ export const setDatabaseInstalled = (installed: boolean): void => {
   DATABASE_INSTALLED = installed;
   
   try {
-    localStorage.setItem('sqlite_installed', installed ? 'true' : 'false');
+    localStorage.setItem('mongodb_installed', installed ? 'true' : 'false');
   } catch (error) {
     console.warn('Could not save database installation status', error);
   }
 };
 
 /**
- * Get the database connection string (for SQLite, this is the file path)
+ * Get the database connection string
  */
 export const getDatabaseConnectionString = (): string => {
   try {
-    // For SQLite, we don't need an external connection string, but we'll 
-    // maintain API compatibility with previous MongoDB implementation
-    return CONNECTION_STRING || 'sqlite://data/database.sqlite';
+    // Check for connection string in localStorage
+    const storedUri = localStorage.getItem('mongodb_uri');
+    if (storedUri) return storedUri;
+    
+    // Use environment variable as fallback
+    return CONNECTION_STRING || process.env.VITE_MONGODB_URI || '';
   } catch (error) {
     console.warn('Could not get database connection string', error);
     return '';
@@ -57,35 +60,32 @@ export const getDatabaseConnectionString = (): string => {
 
 /**
  * Set the database connection string 
- * (For SQLite, this can be used to specify a custom file path)
  */
 export const setDatabaseConnectionString = (connectionString: string): void => {
   console.log(`Setting database connection string: ${connectionString}`);
   CONNECTION_STRING = connectionString;
   
   try {
-    localStorage.setItem('sqlite_connection', connectionString);
+    localStorage.setItem('mongodb_uri', connectionString);
   } catch (error) {
     console.warn('Could not save database connection string', error);
   }
 };
 
 /**
- * Validate connection string format
- * (For SQLite, we just check if it starts with sqlite:// or has a .sqlite extension)
+ * Validate connection string format for MongoDB
  */
 export const validateConnectionString = (connectionString: string): boolean => {
-  return connectionString.startsWith('sqlite://') || 
-         connectionString.endsWith('.sqlite') || 
-         connectionString.includes('database.sqlite');
+  return connectionString.startsWith('mongodb://') || 
+         connectionString.startsWith('mongodb+srv://');
 };
 
 /**
  * Check if database is configured
- * For SQLite, this always returns true since we don't need external connection strings
  */
 export const isDatabaseConfigured = (): boolean => {
-  return true;
+  const connectionString = getDatabaseConnectionString();
+  return !!connectionString;
 };
 
 /**
@@ -93,6 +93,6 @@ export const isDatabaseConfigured = (): boolean => {
  */
 export const initializeDatabase = async (): Promise<boolean> => {
   console.log('Initializing database configuration...');
-  setDatabaseInstalled(true);
+  // We'll now rely on the Python backend for actual initialization
   return true;
 };
