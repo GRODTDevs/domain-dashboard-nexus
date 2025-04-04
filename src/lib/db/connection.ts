@@ -1,15 +1,11 @@
 
-import { getDatabaseConnectionString } from '../database-config';
 import { updateStorageStatus } from './storage-status';
+import { initializeSqlite, closeSqliteDb } from './sqlite-adapter';
 
-// Initialize database with connection string
-export const initializeDb = async (mongoUri: string = "") => {
+// Initialize database
+export const initializeDb = async () => {
   try {
-    if (mongoUri) {
-      // Store connection string if provided
-      console.log("DB: Using provided MongoDB connection string");
-    }
-    
+    console.log("DB: Initializing database");
     return await initializeStorage();
   } catch (error) {
     console.error("DB: Failed to initialize database:", error);
@@ -31,7 +27,8 @@ export const getConnectionError = () => {
 
 // Close database connection
 export const closeDb = async () => {
-  console.log("DB: MongoDB connection closed");
+  await closeSqliteDb();
+  console.log("DB: Database connection closed");
 };
 
 // Import functions to re-export
