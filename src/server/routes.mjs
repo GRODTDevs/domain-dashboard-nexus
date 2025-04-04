@@ -1,7 +1,7 @@
 
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { checkConnectionStatus, initializeDatabase } from './db.mjs';
+import { checkConnectionStatus, initializeDatabase } from './db/index.mjs';
 
 // Get directory name in ESM
 const __filename = fileURLToPath(import.meta.url);
