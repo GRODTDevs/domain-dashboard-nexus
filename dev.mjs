@@ -101,21 +101,46 @@ async function startDev() {
   console.log('Starting backend server...');
   const serverProcess = runCommand('node', ['server.mjs']);
   
-  // Wait for the server to start (5 seconds)
+  // Wait for the server to start (7 seconds)
   console.log('Waiting for backend server to start...');
-  await new Promise(resolve => setTimeout(resolve, 5000));
+  await new Promise(resolve => setTimeout(resolve, 7000));
   console.log('Backend server should be running now');
+
+  // Check if port 8080 is already in use
+  console.log('Checking if port 8080 is available...');
+  try {
+    const checkPortProcess = spawn('lsof', ['-i', ':8080'], { stdio: 'pipe' });
+    let portData = '';
+    
+    checkPortProcess.stdout.on('data', (data) => {
+      portData += data.toString();
+    });
+    
+    await new Promise((resolve) => {
+      checkPortProcess.on('close', (code) => {
+        if (code === 0 && portData.trim()) {
+          console.log('⚠️ Port 8080 is already in use. Will try to use a different port.');
+        } else {
+          console.log('✅ Port 8080 appears to be available');
+        }
+        resolve();
+      });
+    });
+  } catch (error) {
+    console.log('Unable to check port availability:', error.message);
+  }
 
   // Start the development server using Vite directly for better diagnostics
   console.log('Starting frontend development server...');
-  console.log('Setting VITE_HOST=0.0.0.0 to allow external network access');
   
-  // Run vite with debug logging enabled
+  // Run vite with debug logging enabled and fallback port
   const clientProcess = runCommand('npx', ['vite', '--host', '0.0.0.0', '--debug'], {
     env: { 
       ...process.env, 
       VITE_HOST: '0.0.0.0',
-      DEBUG: 'vite:*' // Enable debug logging
+      DEBUG: 'vite:*', // Enable debug logging
+      VITE_PORT: '8080',
+      NODE_OPTIONS: '--max-old-space-size=4096' // Increase memory limit
     }
   });
 
@@ -141,6 +166,12 @@ async function startDev() {
       // Don't exit, let the user decide what to do
       console.log('\nYou can press Ctrl+C to stop and try manually running:');
       console.log('PORT=8081 npx vite --host\n');
+      
+      // Provide a fallback option - try a different port
+      console.log('Attempting to start on a different port (8081)...');
+      runCommand('npx', ['vite', '--host', '0.0.0.0', '--port', '8081'], {
+        env: { ...process.env, VITE_HOST: '0.0.0.0' }
+      });
     }, 15000); // After 15 more seconds
   }, 15000); // 15 second initial warning
 

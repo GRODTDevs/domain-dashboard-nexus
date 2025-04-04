@@ -12,7 +12,10 @@ export default defineConfig(({ mode }) => ({
     strictPort: true, // Fail if port is not available
     cors: true,
     hmr: {
-      clientPort: 8080 // Force client to use this port for HMR
+      clientPort: 8080, // Force client to use this port for HMR
+      host: '0.0.0.0', // Ensure HMR works on all interfaces
+      protocol: 'ws', // Use WebSocket protocol for HMR
+      timeout: 60000, // Longer timeout for slower connections
     },
     watch: {
       usePolling: true, // Use polling for file watching (more reliable in some environments)
@@ -64,6 +67,9 @@ export default defineConfig(({ mode }) => ({
   // Define specific optimizations for browser compatibility
   optimizeDeps: {
     exclude: ['mongodb'], // Exclude mongodb from optimization
+    esbuildOptions: {
+      target: 'es2020', // Target modern browsers for dependencies
+    },
   },
   // Enable more detailed logging
   logLevel: 'info',
