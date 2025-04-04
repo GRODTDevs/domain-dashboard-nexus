@@ -1,17 +1,15 @@
+
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { 
-  Table, TableBody, TableCell, TableHead, 
-  TableHeader, TableRow 
-} from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Pencil, Trash2, Plus, Users } from "lucide-react";
 import { User, fetchUsers, deleteUser } from "@/lib/api";
 import { ConfirmationDialog } from "@/components/confirmation-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { UserDialog } from "./user-dialog";
 import { EmptyState } from "@/components/empty-state";
+import { UserTable } from "./user-table";
+import { UserListHeader } from "./user-list-header";
+import { UserListLoading } from "./user-list-loading";
+import { Users, Plus } from "lucide-react";
 
 export function UserList() {
   const { toast } = useToast();
@@ -73,23 +71,13 @@ export function UserList() {
   };
 
   if (isLoading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-pulse">Loading users...</div>
-      </div>
-    );
+    return <UserListLoading />;
   }
   
   if (users.length === 0) {
     return (
       <div>
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold">Users</h2>
-          <Button onClick={handleAddNew}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add User
-          </Button>
-        </div>
+        <UserListHeader onAddUser={handleAddNew} />
         
         <EmptyState
           icon={Users}
@@ -123,62 +111,13 @@ export function UserList() {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold">Users</h2>
-        <Button onClick={handleAddNew}>
-          <Plus className="h-4 w-4 mr-2" />
-          Add User
-        </Button>
-      </div>
+      <UserListHeader onAddUser={handleAddNew} />
       
-      <div className="border rounded-lg overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Role</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="w-[100px]">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {users.map((user) => (
-              <TableRow key={user.id}>
-                <TableCell className="font-medium">{user.name}</TableCell>
-                <TableCell>{user.email}</TableCell>
-                <TableCell className="capitalize">{user.role}</TableCell>
-                <TableCell>
-                  <Badge variant={user.active ? "success" : "secondary"}>
-                    {user.active ? "Active" : "Inactive"}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <div className="flex space-x-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleEdit(user)}
-                    >
-                      <Pencil className="h-4 w-4" />
-                      <span className="sr-only">Edit</span>
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="text-destructive hover:bg-destructive/10"
-                      onClick={() => handleDelete(user.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                      <span className="sr-only">Delete</span>
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+      <UserTable 
+        users={users}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+      />
 
       <UserDialog
         open={isDialogOpen}
